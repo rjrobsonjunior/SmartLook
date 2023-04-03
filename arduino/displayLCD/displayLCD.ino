@@ -1,3 +1,8 @@
+#include <MySQL_Connection.h>
+#include <MySQL_Cursor.h>
+#include <MySQL_Encrypt_Sha1.h>
+#include <MySQL_Packet.h>
+
 #include <Wire.h> //INCLUSÃO DE BIBLIOTECA
 #include <Adafruit_GFX.h> //INCLUSÃO DE BIBLIOTECA
 #include <Adafruit_SSD1306.h> //INCLUSÃO DE BIBLIOTECA
