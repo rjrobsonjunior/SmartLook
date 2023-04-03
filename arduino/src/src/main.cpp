@@ -6,6 +6,8 @@
 #include <WiFi.h>
 #include <MySQL_Connection.h>
 #include <MySQL_Cursor.h>
+#include <string.h>
+
 
 #define ROW_NUM     4 // four rows
 #define COLUMN_NUM 4 // three columns
@@ -67,7 +69,7 @@ void connect_wifi();
 
 void connect_db();
 
-void identficationLogin();
+void identificationLogin();
 
 void identificationFacial();
 
@@ -97,6 +99,22 @@ void setup(){
 }
 void loop() {
 
+  MySQL_Cursor *cur_mem = new MySQL_Cursor(&conn);
+  char sql_query[100];
+  sprintf(sql_query, "SELECT login, senha FROM testeOF1.info");
+  cur_mem->execute(sql_query);
+  MySQL_Row row = cur_mem->get_next_row();
+  
+  // Imprime as informações de login e senha no monitor serial
+  Serial.print("Login: ");
+  Serial.println(row.get_string(0));
+  Serial.print("Senha: ");
+  Serial.println(row.get_string(1));
+  
+  display.clearDisplay(); 
+
+  delay(10000);
+  
   display.setTextSize(2);
   display.setCursor(0,0); 
   display.print("Selected identification mode");
@@ -119,74 +137,27 @@ void loop() {
   //login and password
   case '1':
     /* code */
-
+    identificationLogin();
     break;
   //facial recognition
   case '2':
     /* code */
+    identificationFacial();
     break;
   //QR Code
   case '3':
     /* code */
+    identificationQRcode();
     break;
   default:
     break;
   }
-  
-
-  MySQL_Cursor *cur_mem = new MySQL_Cursor(&conn);
-  char sql_query[100];
-  sprintf(sql_query, "SELECT login, senha FROM tabela WHERE id = 1");
-  cur_mem->execute(sql_query);
-  MySQL_Row row = cur_mem->get_next_row();
-  
-  // Imprime as informações de login e senha no monitor serial
-  Serial.print("Login: ");
-  Serial.println(row.get_string(0));
-  Serial.print("Senha: ");
-  Serial.println(row.get_string(1));
   
   display.clearDisplay(); 
 
   delay(10000);
 }
 //Functions
-
-//Definindo a função que faz a consulta ao banco de dados
-/*
-bool checkLogin(String login, String senha) {
-
-  if (conn.connect(server_addr, 3306, user_db, pass_db, db)) 
-  {
-    Serial.println("Conexão ao MySQL realizada com sucesso!");
-    
-    //Preparando a query SQL
-    String query = "SELECT * FROM pessoas WHERE login = '"+login+"' AND senha = '"+senha+"'";
-    Serial.println("Query: " + query);
-    
-    //Executando a query SQL
-    MySQL_Cursor *cur = new MySQL_Cursor(&conn);
-    cur->execute(query);
-    
-    //Lendo os resultados da consulta
-    MySQL_Row row;
-    row = cur->get_next_row();
-    
-    if (row.empty()) {
-      Serial.println("Login ou senha inválidos!");
-      return false;
-    } else {
-      Serial.println("Login e senha válidos!");
-      return true;
-    }
-    
-    delete cur;
-  } else {
-    Serial.println("Falha na conexão ao MySQL!");
-    return false;
-  }
-}
-*/
 
 void connect_wifi()
 {
@@ -220,7 +191,7 @@ void connect_db()
   }
 }
 
-void identficationLogin()
+void identificationLogin()
 {
   char login[11], senha[4];
   display.setTextSize(2);
@@ -244,7 +215,44 @@ void identficationLogin()
     display.print(senha);
     display.display();
   }
-
+  if (conn.connect(server_addr, 3306, user_db, pass_db, db)) 
+  {
+    Serial.println("Conexão ao MySQL realizada com sucesso!");
+    
+    //Preparando a query SQL
+    String query = "SELECT * FROM pessoas WHERE login = '"+login+"' AND senha = '"+senha+"'";
+    Serial.println("Query: " + query);
+    
+    //Executando a query SQL
+    MySQL_Cursor *cur = new MySQL_Cursor(&conn);
+    cur->execute(query);
+    
+    //Lendo os resultados da consulta
+    MySQL_Row row;
+    row = cur->get_next_row();
+    
+    if (row.empty()) {
+      display.setTextSize(2);
+      display.setCursor(0,0); 
+      display.print("Login ou senha inválidos!");
+      display.display();
+      digitalWrite(PinoRele, LOW);
+      delay(1000);
+    } else {
+      display.setTextSize(2);
+      display.setCursor(0,0); 
+      display.print("Login ou senha válidos!");
+      display.display();
+      digitalWrite(PinoRele, HIGH);
+      delay(5000);
+    }
+  } else {
+      display.setTextSize(2);
+      display.setCursor(0,0); 
+      display.print("DataBase disconected");
+      display.display();
+  }
+  delete cur;
 }
 
 void identificationFacial()
