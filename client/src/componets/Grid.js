@@ -1,4 +1,5 @@
 import React from "react";
+import axios from "axios";
 import styled from "styled-components";
 import { FaTrash, FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
@@ -37,7 +38,7 @@ export const Td = styled.td`
   }
 `;
 
-const Grid = ({Users}) => {
+const Grid = ({users}) => {
     return(
         <Table>
             <Thead>
@@ -50,17 +51,13 @@ const Grid = ({Users}) => {
                 </Tr>
             </Thead>
             <Tbody>
-                {Users.map((item, i) => (
+                {users.map((item, i) => (
                 <Tr key={i}>
                     <Td width="30%">{item.nome}</Td>
                     <Td width="30%">{item.login}</Td>
                     <Td width="20%">{item.senha}</Td>
-                    <Td alignCenter width="5%">
-                    <FaEdit/>
-                    </Td>
-                    <Td alignCenter width="5%">
-                    <FaTrash/>
-                    </Td>
+                    <Td alignCenter width="5%"><FaEdit/></Td>
+                    <Td alignCenter width="5%"><FaTrash/></Td>
                 </Tr>
                 ))}
             </Tbody>
