@@ -18,24 +18,25 @@ const InputArea = styled.div`
 `;
 
 const Input = styled.input`
-  width: 120px;
+  width:  120px;
   padding: 0 10px;
   border: 1px solid #bbb;
   border-radius: 5px;
   height: 40px;
+  color: white;
+  background-color: #070707;
 `;
  
-const Label = styled.label`
-`;
+const Label = styled.label``;
 
 const Button = styled.button`
-  padding: 10px;
+  padding: 20px;
   cursor: pointer;
   border-radius: 5px;
   border: none;
   background-color: #04D361;
   color: white;
-  height: 42px;
+  height: 62px;
 `;
 
 const Form = ({ onEdit }) => {
@@ -46,19 +47,19 @@ const Form = ({ onEdit }) => {
         <FormContainer ref={ref}>
             <InputArea>
                 <Label>Nome</Label>
-                <Imput name="nome"/>
+                <Input name="nome"/>
             </InputArea>
             <InputArea>
                 <Label>Login</Label>
-                <Imput name="login"/>
+                <Input name="login"/>
             </InputArea>
             <InputArea>
                 <Label>Senha</Label>
-                <Imput name="senha"/>
+                <Input name="senha"/>
             </InputArea>
             <InputArea>
-                <Label>DataNascimento</Label>
-                <Imput name="data_nascimento" type="date" />
+                <Label>Data de Nascimento</Label>
+                <Input name="data_nascimento" type="date" />
             </InputArea>
 
             <Button type="submit">Salvar</Button>
