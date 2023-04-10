@@ -56,7 +56,7 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
         }
       }, [onEdit]);
 
-      
+
     const handleSubmit = async (e) => {
         e.preventDefault();
 
@@ -81,7 +81,8 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
             })
             .then(({ data }) => toast.success(data))
             .catch(({ data }) => toast.error(data));
-        } else {
+        } 
+        else {
             await axios
             .post("http://localhost:8800", {
                 nome: user.nome.value,
@@ -121,7 +122,7 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
                 <Input name="data_nascimento" type="date" />
             </InputArea>
 
-            <Button type="submit">Salvar</Button>
+            <Button type="submit">SALVAR</Button>
 
         </FormContainer>
     )
