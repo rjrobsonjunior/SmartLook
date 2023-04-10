@@ -7,6 +7,7 @@ const Global = createGlobalStyle`
         padding: 0;
         font-family: 'poppins', sans-serif;
         color: white;
+        --toastify-icon-color-info: black;
     }
 
     body {
