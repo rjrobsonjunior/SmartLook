@@ -115,7 +115,7 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
             </InputArea>
             <InputArea>
                 <Label>Senha</Label>
-                <Input name="senha"/>
+                <Input name="senha" type="text" maxlength="6"/>
             </InputArea>
             <InputArea>
                 <Label>Data de Nascimento</Label>
