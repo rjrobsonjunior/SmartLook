@@ -52,7 +52,7 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
           user.nome.value = onEdit.nome;
           user.login.value = onEdit.login;
           user.senha.value = onEdit.senha;
-          user.data_nascimento.value = onEdit.data_nascimento;
+          user.recognition.value = onEdit.recognition;
         }
       }, [onEdit]);
 
@@ -66,7 +66,7 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
             !user.nome.value ||
             !user.login.value ||
             !user.senha.value ||
-            !user.data_nascimento.value
+            !user.recognition.value
         ) {
             return toast.warn("Preencha todos os campos!");
         }
@@ -77,7 +77,7 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
                 nome: user.nome.value,
                 login: user.login.value,
                 senha: user.senha.value,
-                data_nascimento: user.data_nascimento.value,
+                recognition: user.recognition.value,
             })
             .then(({ data }) => toast.success(data))
             .catch(({ data }) => toast.error(data));
@@ -88,7 +88,7 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
                 nome: user.nome.value,
                 login: user.login.value,
                 senha: user.senha.value,
-                data_nascimento: user.data_nascimento.value,
+                recognition: user.recognition.value,
             })
             .then(({ data }) => toast.success(data))
             .catch(({ data }) => toast.error(data));
@@ -97,7 +97,7 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
         user.nome.value = "";
         user.login.value = "";
         user.senha.value = "";
-        user.data_nascimento.value = "";
+        user.recognition.value = "";
 
         setOnEdit(null);
         getUsers();
@@ -118,8 +118,8 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
                 <Input name="senha" type="text" maxlength="6"/>
             </InputArea>
             <InputArea>
-                <Label>Data de Nascimento</Label>
-                <Input name="data_nascimento" type="date" />
+                <Label>Recognition</Label>
+                <Input name="recognition" type="date" />
             </InputArea>
 
             <Button type="submit">SALVAR</Button>
