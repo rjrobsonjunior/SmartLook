@@ -3,11 +3,11 @@ import { db } from "../db.js";
 
 const router = express.Router();
 
-app.post('/login', (req, res) => {
+router.post('/login', (req, res) => {
     const login = req.body.login;
     const query = `SELECT senha FROM usuarios WHERE login = '${login}'`;
   
-    connection.query(query, (err, result) => {
+    db.query(query, (err, result) => {
       if (err) throw err;
       if (result.length === 0) {
         res.status(401).send('Login inválido!');
