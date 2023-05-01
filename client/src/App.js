@@ -2,6 +2,7 @@ import GlobalStyle  from "./styles/global";
 import styled from "styled-components";
 import Form from "./componets/Form.js";
 import Grid from "./componets/Grid.js";
+import WebcamCapture from "./componets/Video";
 import { useEffect, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -42,6 +43,7 @@ function App() {
     <>
       <Container>
         <Title>USUARIOS</Title>
+        <WebcamCapture />
         <Form onEdit={onEdit} setOnEdit={setOnEdit} getUsers={getUsers} />
         <Grid users={users} setUsers={setUsers} setOnEdit={setOnEdit} />
       </Container>
