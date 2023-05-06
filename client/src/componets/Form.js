@@ -20,7 +20,6 @@ const InputArea = styled.div`
 `;
 
 const Input = styled.input`
-  width:  120px;
   padding: 0 10px;
   border: 1px solid #bbb;
   border-radius: 5px;
@@ -29,7 +28,9 @@ const Input = styled.input`
   background-color: #070707;
 `;
  
-const Label = styled.label``;
+const Label = styled.label`
+    text-align: center;
+`;
 
 const Button = styled.button`
   padding: 20px;
@@ -107,19 +108,35 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
         <FormContainer ref={ref} onSubmit={handleSubmit}>
             <InputArea>
                 <Label>Nome</Label>
-                <Input name="nome"/>
+                <Input name="nome" />
             </InputArea>
-            <InputArea>
+            <InputArea >
                 <Label>Login</Label>
-                <Input name="login"/>
+                <Input name="login" />
             </InputArea>
             <InputArea>
                 <Label>Senha</Label>
-                <Input name="senha" type="text" maxlength="6"/>
+                <Input name="senha" type="text"/>
             </InputArea>
             <InputArea>
-                <Label>Recognition</Label>
-                <Input name="recognition" type="date" />
+                <Label>1</Label>
+                <Input name="recognition" type="checkbox"  />
+            </InputArea>
+            <InputArea>
+                <Label>2</Label>
+                <Input name="recognition" type="checkbox" width="10%"/>
+            </InputArea>
+            <InputArea>
+                <Label>3</Label>
+                <Input name="recognition" type="checkbox" width="10%" />
+            </InputArea>
+            <InputArea>
+                <Label>4</Label>
+                <Input name="recognition" type="checkbox" width="10%" />
+            </InputArea>
+            <InputArea>
+                <Label>5</Label>
+                <Input name="recognition" type="checkbox" width="10%" />
             </InputArea>
 
             <Button type="submit">SALVAR</Button>
