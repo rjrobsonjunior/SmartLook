@@ -17,7 +17,11 @@ export const addUser = (req, res) => {
       req.body.nome,
       req.body.login,
       req.body.senha,
-      req.body.recognition,
+      req.body.recognition1,
+      req.body.recognition2,
+      req.body.recognition3,
+      req.body.recognition4,
+      req.body.recognition5,
     ];
   
     db.query(q, [values], (err) => {
@@ -34,7 +38,11 @@ export const addUser = (req, res) => {
       req.body.nome,
       req.body.login,
       req.body.senha,
-      req.body.recognition,
+      req.body.recognition1,
+      req.body.recognition2,
+      req.body.recognition3,
+      req.body.recognition4,
+      req.body.recognition5,
     ];
   
     db.query(q, [...values, req.params.id], (err) => {

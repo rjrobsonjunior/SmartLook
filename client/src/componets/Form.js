@@ -45,8 +45,6 @@ const Button = styled.button`
     font-size:16px;
 `;
 
-
-
 const Form = ({ getUsers, onEdit, setOnEdit}) => {
 
     const ref = useRef();
@@ -58,7 +56,11 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
           user.nome.value = onEdit.nome;
           user.login.value = onEdit.login;
           user.senha.value = onEdit.senha;
-          user.recognition.value = onEdit.recognition;
+          user.recognition1.value = onEdit.recognition1;
+          user.recognition2.value = onEdit.recognition2;
+          user.recognition3.value = onEdit.recognition3;
+          user.recognition4.value = onEdit.recognition4;
+          user.recognition5.value = onEdit.recognition5;
         }
       }, [onEdit]);
 
@@ -71,8 +73,11 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
         if (
             !user.nome.value ||
             !user.login.value ||
-            !user.senha.value ||
-            !user.recognition.value
+            !user.recognition1.value ||
+            !user.recognition2.value ||
+            !user.recognition3.value ||
+            !user.recognition4.value ||
+            !user.recognition5.value 
         ) {
             return toast.warn("Preencha todos os campos!");
         }
@@ -83,7 +88,11 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
                 nome: user.nome.value,
                 login: user.login.value,
                 senha: user.senha.value,
-                recognition: user.recognition.value,
+                recognition1: user.recognition1.value,
+                recognition2: user.recognition2.value,
+                recognition3: user.recognition3.value,
+                recognition4: user.recognition4.value,
+                recognition5: user.recognition5.value,
             })
             .then(({ data }) => toast.success(data))
             .catch(({ data }) => toast.error(data));
@@ -94,7 +103,11 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
                 nome: user.nome.value,
                 login: user.login.value,
                 senha: user.senha.value,
-                recognition: user.recognition.value,
+                recognition1: user.recognition1.value,
+                recognition2: user.recognition2.value,
+                recognition3: user.recognition3.value,
+                recognition4: user.recognition4.value,
+                recognition5: user.recognition5.value,
             })
             .then(({ data }) => toast.success(data))
             .catch(({ data }) => toast.error(data));
@@ -103,7 +116,11 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
         user.nome.value = "";
         user.login.value = "";
         user.senha.value = "";
-        user.recognition.value = "";
+        user.recognition1.value = "";
+        user.recognition2.value = "";
+        user.recognition3.value = "";
+        user.recognition4.value = "";
+        user.recognition5.value = "";
 
         setOnEdit(null);
         getUsers();
@@ -125,23 +142,23 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
             </InputArea>
             <InputArea>
                 <Label>1</Label>
-                <Input name="recognition" type="checkbox"  className="checkbox-input"/>
+                <Input name="recognition1" type="checkbox"  className="checkbox-input"/>
             </InputArea>
             <InputArea>
                 <Label>2</Label>
-                <Input name="recognition" type="checkbox" className="checkbox-input"/>
+                <Input name="recognition2" type="checkbox" className="checkbox-input"/>
             </InputArea>
             <InputArea>
                 <Label>3</Label>
-                <Input name="recognition" type="checkbox" className="checkbox-input"/>
+                <Input name="recognition3" type="checkbox" className="checkbox-input"/>
             </InputArea>
             <InputArea>
                 <Label>4</Label>
-                <Input name="recognition" type="checkbox" className="checkbox-input"/>
+                <Input name="recognition4" type="checkbox" className="checkbox-input"/>
             </InputArea>
             <InputArea>
                 <Label>5</Label>
-                <Input name="recognition" type="checkbox" className="checkbox-input"/>
+                <Input name="recognition5" type="checkbox" className="checkbox-input"/>
             </InputArea>
 
             <Button type="submit">SALVAR</Button>

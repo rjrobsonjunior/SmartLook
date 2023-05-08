@@ -1,18 +1,16 @@
 import express from 'express';
 import { db } from "../db.js";
+import * as faceapi from 'face-api.js';
+import canvas from "canvas";
+import bodyParser from "body-parser";
 
 const router = express.Router();
 
-const express = require('express');
-const bodyParser = require('body-parser');
-const faceapi = require('face-api.js');
-const canvas = require('canvas');
 
-const app = express();
 
 // Configura o body-parser para lidar com o corpo da requisição
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
+router.use(bodyParser.urlencoded({ extended: true }));
+router.use(bodyParser.json());
 
 // Inicializa os modelos da face-api.js
 Promise.all([
@@ -26,7 +24,7 @@ Promise.all([
 });
 
 // Cria a rota para receber a imagem
-app.post('/processar-imagem', async (req, res) => {
+router.post('/processar-imagem', async (req, res) => {
   try {
     // Converte a imagem recebida em um objeto ImageData usando a biblioteca canvas
     const image = await canvas.loadImage(req.body.imagem);
@@ -49,4 +47,5 @@ app.post('/processar-imagem', async (req, res) => {
     res.status(500).send('Erro ao processar imagem');
   }
 });
+
 export default router;

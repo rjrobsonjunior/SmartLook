@@ -33,7 +33,7 @@ const WebcamCapture = () => {
   const [image, setImage] = useState(null);
   const [faceDetected, setFaceDetected] = useState(false);
   
-  // Carrega os modelos de detecção facial da face-api.js
+  //load face detection models
   useEffect(() => {
     const loadModels = async () => {
       await faceapi.loadSsdMobilenetv1Model('/models');
@@ -61,6 +61,7 @@ const WebcamCapture = () => {
     } else {
       setFaceDetected(false);
     }
+    console.log(setFaceDetected);
   };
   
   // Referência para o componente Webcam
