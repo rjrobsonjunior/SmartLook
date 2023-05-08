@@ -4,12 +4,14 @@ import axios from "axios";
 import { toast } from "react-toastify";
 
 const FormContainer = styled.form`
+    width: 100%;
     display: flex;
     aling-itens: flex-end;
-    gap: 10px;
     flex-wrap: wrap;
     background-color: #29292E;
     padding: 20px;
+    max-width: 1120px;
+    margin: 20px auto;
     box-shadow: 0px 0px 5px #323238;
     border-radius: 5px;
 `;
@@ -20,12 +22,12 @@ const InputArea = styled.div`
 `;
 
 const Input = styled.input`
-  padding: 0 10px;
-  border: 1px solid #bbb;
-  border-radius: 5px;
-  height: 40px;
-  color: white;
-  background-color: #070707;
+    padding: 0 10px;
+    border: 1px solid #bbb;
+    border-radius: 5px;
+    height: 40px;
+    color: white;
+    background-color: #070707;
 `;
  
 const Label = styled.label`
@@ -33,14 +35,17 @@ const Label = styled.label`
 `;
 
 const Button = styled.button`
-  padding: 20px;
-  cursor: pointer;
-  border-radius: 5px;
-  border: none;
-  background-color: #04D361;
-  color: white;
-  height: 62px;
+    padding: 10px;
+    cursor: pointer;
+    border-radius: 5px;
+    border: none;
+    background-color: #04D361;
+    color: white;
+    height: 62px;
+    font-size:16px;
 `;
+
+
 
 const Form = ({ getUsers, onEdit, setOnEdit}) => {
 
@@ -108,7 +113,7 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
         <FormContainer ref={ref} onSubmit={handleSubmit}>
             <InputArea>
                 <Label>Nome</Label>
-                <Input name="nome" />
+                <Input name="nome" width="20%"/>
             </InputArea>
             <InputArea >
                 <Label>Login</Label>
@@ -120,23 +125,23 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
             </InputArea>
             <InputArea>
                 <Label>1</Label>
-                <Input name="recognition" type="checkbox"  />
+                <Input name="recognition" type="checkbox"  className="checkbox-input"/>
             </InputArea>
             <InputArea>
                 <Label>2</Label>
-                <Input name="recognition" type="checkbox" width="10%"/>
+                <Input name="recognition" type="checkbox" className="checkbox-input"/>
             </InputArea>
             <InputArea>
                 <Label>3</Label>
-                <Input name="recognition" type="checkbox" width="10%" />
+                <Input name="recognition" type="checkbox" className="checkbox-input"/>
             </InputArea>
             <InputArea>
                 <Label>4</Label>
-                <Input name="recognition" type="checkbox" width="10%" />
+                <Input name="recognition" type="checkbox" className="checkbox-input"/>
             </InputArea>
             <InputArea>
                 <Label>5</Label>
-                <Input name="recognition" type="checkbox" width="10%" />
+                <Input name="recognition" type="checkbox" className="checkbox-input"/>
             </InputArea>
 
             <Button type="submit">SALVAR</Button>

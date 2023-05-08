@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import Webcam from "react-webcam";
-import Cropper from "react-image-crop";
+import React, { useState, useEffect } from 'react';
+import Webcam from 'react-webcam';
+import * as faceapi from 'face-api.js';
 import styled from 'styled-components';
+//import "./Checkbox.css";
 
 const WebcamContainer = styled.div`
   border-radius: 10px;
@@ -24,32 +25,58 @@ const Button = styled.button`
   border: none;
   background-color: #29292E;
   height: 50px;
+  font-size: 16px;
+  cursor: pointer;
 `;
 
 const WebcamCapture = () => {
-  const [capturing, setCapturing] = useState(false);
-  const [crop, setCrop] = useState({ aspect: 1 / 1 });
   const [image, setImage] = useState(null);
-
-  const handleCapture = () => {
-    setCapturing(true);
+  const [faceDetected, setFaceDetected] = useState(false);
+  
+  // Carrega os modelos de detecção facial da face-api.js
+  useEffect(() => {
+    const loadModels = async () => {
+      await faceapi.loadSsdMobilenetv1Model('/models');
+      await faceapi.loadFaceLandmarkModel('/models');
+      await faceapi.loadFaceRecognitionModel('/models');
+    };
+    loadModels();
+  }, []);
+  
+  // Função para processar a imagem capturada
+  const capture = async () => {
+    const imageSrc = webcamRef.current.getScreenshot();
+    setImage(imageSrc);
+    const imageElement = document.createElement('img');
+    imageElement.src = imageSrc;
+    
+    // Detecta a face na imagem usando a face-api.js
+    const detections = await faceapi.detectAllFaces(imageElement).withFaceLandmarks().withFaceDescriptors();
+    
+    // Verifica se uma face foi detectada na imagem
+    if (detections.length > 0) {
+      setFaceDetected(true);
+      // Salva a face detectada no banco de dados
+      // ...
+    } else {
+      setFaceDetected(false);
+    }
   };
-
-  const handleRetake = () => {
-    setCapturing(false);
-    setImage(null);
-  };
-
-  const handleCrop = (croppedImage) => {
-    setImage(croppedImage);
-    setCapturing(false);
-  };
-
+  
+  // Referência para o componente Webcam
+  const webcamRef = React.useRef(null);
+  
   return (
-    <WebcamContainer>
-      <Webcam/>
-      <Button onClick={handleCapture}>CAPTURE</Button>
-    </WebcamContainer>
+    <div>
+      <Webcam
+        audio={false}
+        ref={webcamRef}
+        screenshotFormat="image/jpeg"
+      />
+      <Button onClick={capture}>CAPTURE</Button>
+      {faceDetected && <p>Face detectada!</p>}
+      {image && <img src={image} alt="captured" />}
+    </div>
   );
 };
 

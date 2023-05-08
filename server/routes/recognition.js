@@ -1,31 +1,52 @@
-const express = require("express");
-const app = express();
-const bodyParser = require("body-parser");
-const faceapi = require("face-api.js");
-const mysql = require("mysql");
-
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(bodyParser.json());
+import express from 'express';
+import { db } from "../db.js";
 
 const router = express.Router();
 
-app.post("/process-images", async (req, res) => {
-  const { images } = req.body;
+const express = require('express');
+const bodyParser = require('body-parser');
+const faceapi = require('face-api.js');
+const canvas = require('canvas');
 
-  // Carrega os modelos necessários do Faceapi.js
-  await faceapi.nets.faceRecognitionNet.loadFromDisk("./models");
-  await faceapi.nets.faceLandmark68Net.loadFromDisk("./models");
-  await faceapi.nets.ssdMobilenetv1.loadFromDisk("./models");
+const app = express();
 
-  const descriptors = [];
+// Configura o body-parser para lidar com o corpo da requisição
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
-  // Itera pelas imagens recebidas e extrai as características faciais de cada uma
-  for (let i = 0; i < images.length; i++) {
-    const img = await faceapi.bufferToImage(images[i]);
-    const detections = await faceapi
-      .detectSingleFace(img)
-      .withFaceLandmarks()
+// Inicializa os modelos da face-api.js
+Promise.all([
+  faceapi.nets.ssdMobilenetv1.loadFromDisk('./models'),
+  faceapi.nets.faceLandmark68Net.loadFromDisk('./models'),
+  faceapi.nets.faceRecognitionNet.loadFromDisk('./models')
+]).then(() => {
+  console.log('Modelos carregados com sucesso!');
+}).catch((error) => {
+  console.error('Erro ao carregar modelos:', error);
+});
+
+// Cria a rota para receber a imagem
+app.post('/processar-imagem', async (req, res) => {
+  try {
+    // Converte a imagem recebida em um objeto ImageData usando a biblioteca canvas
+    const image = await canvas.loadImage(req.body.imagem);
+    const canvasElement = canvas.createCanvas(image.width, image.height);
+    const canvasContext = canvasElement.getContext('2d');
+    canvasContext.drawImage(image, 0, 0, image.width, image.height);
+    const imageData = canvasContext.getImageData(0, 0, image.width, image.height);
+
+    // Detecta as faces na imagem usando a face-api.js
+    const faceDetectionOptions = new faceapi.SsdMobilenetv1Options({ minConfidence: 0.5 });
+    const faceDetections = await faceapi.detectAllFaces(imageData, faceDetectionOptions).withFaceLandmarks().withFaceDescriptors();
+
+    // Busca no banco de dados o dado tipo blob do usuário que mais se assemelha da foto recebida
+    const [rows] = await pool.query(`SELECT * FROM usuarios ORDER BY ABS(face_data - ?) LIMIT 1`, [faceDetections[0].descriptor.join()]);
+
+    // Retorna o resultado
+    res.json(rows[0]);
+  } catch (error) {
+    console.error('Erro ao processar imagem:', error);
+    res.status(500).send('Erro ao processar imagem');
   }
-}
-
-//export default router;
+});
+export default router;
