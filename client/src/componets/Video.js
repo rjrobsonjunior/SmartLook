@@ -35,12 +35,14 @@ const WebcamCapture = () => {
   
   //load face detection models
   useEffect(() => {
+    console.log("carregando modelos");
     const loadModels = async () => {
       await faceapi.loadSsdMobilenetv1Model('/models');
       await faceapi.loadFaceLandmarkModel('/models');
       await faceapi.loadFaceRecognitionModel('/models');
     };
     loadModels();
+    console.log("modelos carregados");
   }, []);
   
   // Função para processar a imagem capturada
