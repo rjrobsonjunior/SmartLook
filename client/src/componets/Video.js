@@ -1,9 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import Webcam from 'react-webcam';
 import * as faceapi from 'face-api.js';
+import React from 'react';
 import styled from 'styled-components';
 //import "./Checkbox.css";
-const MODEL_URL = './models'
 
 
 const WebcamContainer = styled.div`
@@ -31,58 +29,104 @@ const Button = styled.button`
   cursor: pointer;
 `;
 
-const WebcamCapture = () => {
-  const [image, setImage] = useState(null);
-  const [faceDetected, setFaceDetected] = useState(false);
-  
-  //load face detection models
-  useEffect(() => {
-    //console.log("carregando modelos");
+function WebcamCapture() {
+
+  const [modelsLoaded, setModelsLoaded] = React.useState(false);
+  const [captureVideo, setCaptureVideo] = React.useState(false);
+
+  const videoRef = React.useRef();
+  const videoHeight = 480;
+  const videoWidth = 640;
+  const canvasRef = React.useRef();
+
+  React.useEffect(() => {
     const loadModels = async () => {
-      await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
-      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
-      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
-    };
-    loadModels();
-    //console.log("modelos carregados");
-  }, []);
-  
-  // Função para processar a imagem capturada
-  const capture = async () => {
-    const imageSrc = webcamRef.current.getScreenshot();
-    setImage(imageSrc);
-    const imageElement = document.createElement('img');
-    imageElement.src = imageSrc;
-    
-    // Detecta a face na imagem usando a face-api.js
-    const detections = await faceapi.detectAllFaces(imageElement).withFaceLandmarks().withFaceDescriptors();
-    
-    // Verifica se uma face foi detectada na imagem
-    if (detections.length > 0) {
-      setFaceDetected(true);
-      // Salva a face detectada no banco de dados
-      // ...
-    } else {
-      setFaceDetected(false);
+      const MODEL_URL = process.env.PUBLIC_URL + '/models';
+
+      Promise.all([
+        faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
+        faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
+        faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
+        faceapi.nets.faceExpressionNet.loadFromUri(MODEL_URL),
+      ]).then(setModelsLoaded(true));
     }
-    console.log(setFaceDetected);
-  };
-  
-  // Referência para o componente Webcam
-  const webcamRef = React.useRef(null);
-  
+    loadModels();
+  }, []);
+
+  const startVideo = () => {
+    setCaptureVideo(true);
+    navigator.mediaDevices.getUserMedia({ video: { width: 300 } })
+      .then(stream => {
+        let video = videoRef.current;
+        video.srcObject = stream;
+        video.play();
+      })
+      .catch(err => {
+        console.error("error:", err);
+      });
+  }
+
+  const handleVideoOnPlay = () => {
+    setInterval(async () => {
+      if (canvasRef && canvasRef.current) {
+        canvasRef.current.innerHTML = faceapi.createCanvasFromMedia(videoRef.current);
+        const displaySize = {
+          width: videoWidth,
+          height: videoHeight
+        }
+
+        faceapi.matchDimensions(canvasRef.current, displaySize);
+
+        const detections = await faceapi.detectAllFaces(videoRef.current, new faceapi.TinyFaceDetectorOptions()).withFaceLandmarks().withFaceExpressions();
+
+        const resizedDetections = faceapi.resizeResults(detections, displaySize);
+
+        canvasRef && canvasRef.current && canvasRef.current.getContext('2d').clearRect(0, 0, videoWidth, videoHeight);
+        canvasRef && canvasRef.current && faceapi.draw.drawDetections(canvasRef.current, resizedDetections);
+        canvasRef && canvasRef.current && faceapi.draw.drawFaceLandmarks(canvasRef.current, resizedDetections);
+        canvasRef && canvasRef.current && faceapi.draw.drawFaceExpressions(canvasRef.current, resizedDetections);
+      }
+    }, 100)
+  }
+
+  const closeWebcam = () => {
+    videoRef.current.pause();
+    videoRef.current.srcObject.getTracks()[0].stop();
+    setCaptureVideo(false);
+  }
+
   return (
     <div>
-      <Webcam
-        audio={false}
-        ref={webcamRef}
-        screenshotFormat="image/jpeg"
-      />
-      <Button onClick={capture}>CAPTURE</Button>
-      {faceDetected && <p>Face detectada!</p>}
-      {image && <img src={image} alt="captured" />}
+      <div style={{ textAlign: 'center', padding: '10px' }}>
+        {
+          captureVideo && modelsLoaded ?
+            <button onClick={closeWebcam} style={{ cursor: 'pointer', backgroundColor: 'green', color: 'white', padding: '15px', fontSize: '25px', border: 'none', borderRadius: '10px' }}>
+              Close Webcam
+            </button>
+            :
+            <button onClick={startVideo} style={{ cursor: 'pointer', backgroundColor: 'green', color: 'white', padding: '15px', fontSize: '25px', border: 'none', borderRadius: '10px' }}>
+              Open Webcam
+            </button>
+        }
+      </div>
+      {
+        captureVideo ?
+          modelsLoaded ?
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'center', padding: '10px' }}>
+                <video ref={videoRef} height={videoHeight} width={videoWidth} onPlay={handleVideoOnPlay} style={{ borderRadius: '10px' }} />
+                <canvas ref={canvasRef} style={{ position: 'absolute' }} />
+              </div>
+            </div>
+            :
+            <div>loading...</div>
+          :
+          <>
+          </>
+      }
     </div>
   );
-};
+}
+
 
 export default WebcamCapture;
