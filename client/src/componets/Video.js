@@ -3,6 +3,8 @@ import Webcam from 'react-webcam';
 import * as faceapi from 'face-api.js';
 import styled from 'styled-components';
 //import "./Checkbox.css";
+const MODEL_URL = './models'
+
 
 const WebcamContainer = styled.div`
   border-radius: 10px;
@@ -35,14 +37,14 @@ const WebcamCapture = () => {
   
   //load face detection models
   useEffect(() => {
-    console.log("carregando modelos");
+    //console.log("carregando modelos");
     const loadModels = async () => {
-      await faceapi.loadSsdMobilenetv1Model('/models');
-      await faceapi.loadFaceLandmarkModel('/models');
-      await faceapi.loadFaceRecognitionModel('/models');
+      await faceapi.nets.ssdMobilenetv1.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL);
+      await faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL);
     };
     loadModels();
-    console.log("modelos carregados");
+    //console.log("modelos carregados");
   }, []);
   
   // Função para processar a imagem capturada
