@@ -45,7 +45,7 @@ const Button = styled.button`
     font-size:16px;
 `;
 
-const Form = ({ getUsers, onEdit, setOnEdit}) => {
+const Form = ({ getUsers, onEdit, setOnEdit, faceFeatures }) => {
 
     const ref = useRef();
 
@@ -142,7 +142,7 @@ const Form = ({ getUsers, onEdit, setOnEdit}) => {
             </InputArea>
             <InputArea>
                 <Label>1</Label>
-                <Input name="recognition1" type="text"  className="checkbox-input"/>
+                <Input name="recognition1" type="text"  value={JSON.stringify(faceFeatures)}/>
             </InputArea>
             <Button type="submit">SALVAR</Button>
 
