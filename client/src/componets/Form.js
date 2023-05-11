@@ -4,7 +4,7 @@ import axios from "axios";
 import { toast } from "react-toastify";
 
 const FormContainer = styled.form`
-    width: 100%;
+    gap: 10px;
     display: flex;
     aling-itens: flex-end;
     flex-wrap: wrap;
@@ -22,6 +22,7 @@ const InputArea = styled.div`
 `;
 
 const Input = styled.input`
+    width: 160px;
     padding: 0 10px;
     border: 1px solid #bbb;
     border-radius: 5px;
@@ -47,7 +48,7 @@ const Button = styled.button`
 
 const Form = ({ getUsers, onEdit, setOnEdit, faceFeatures }) => {
 
-    const ref = useRef();
+    const ref = useRef(null);
 
     useEffect(() => {
         if (onEdit) {
@@ -73,6 +74,7 @@ const Form = ({ getUsers, onEdit, setOnEdit, faceFeatures }) => {
         if (
             !user.nome.value ||
             !user.login.value ||
+            !user.senha.value ||
             !user.recognition1.value 
             //!user.recognition2.value ||
             //!user.recognition3.value ||
@@ -113,10 +115,10 @@ const Form = ({ getUsers, onEdit, setOnEdit, faceFeatures }) => {
             .catch(({ data }) => toast.error(data));
         }
 
-        user.nome.value = "";
-        user.login.value = "";
-        user.senha.value = "";
-        user.recognition1.value = "";
+        user.nome.value = " ";
+        user.login.value = " ";
+        user.senha.value = " ";
+        user.recognition1.value = " ";
         //user.recognition2.value = "";
         //user.recognition3.value = "";
         //user.recognition4.value = "";
@@ -141,11 +143,11 @@ const Form = ({ getUsers, onEdit, setOnEdit, faceFeatures }) => {
                 <Input name="senha" type="text"/>
             </InputArea>
             <InputArea>
-                <Label>1</Label>
+                <Label>Recognition1</Label>
                 <Input name="recognition1" type="text"  value={JSON.stringify(faceFeatures)}/>
             </InputArea>
+            
             <Button type="submit">SALVAR</Button>
-
         </FormContainer>
     )
 };
