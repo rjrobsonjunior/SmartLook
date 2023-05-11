@@ -2,7 +2,6 @@ import * as faceapi from 'face-api.js';
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 import Webcam from 'react-webcam';
-//import "./Checkbox.css";
 
 
 const WebcamContainer = styled.div`
@@ -37,17 +36,20 @@ function WebcamCapture() {
   const [modelsLoaded, setModelsLoaded] = React.useState(false);
   const [captureVideo, setCaptureVideo] = React.useState(false);
 
-  const webcamRef = React.useRef(null);
+  const webcamRef = React.useRef();
   const canvasRef = React.useRef(null);
 
   const videoRef = React.useRef(null);
   const videoHeight = 480;
   const videoWidth = 640;
 
-  React.useEffect(() => {
+  useEffect(() => {
     const loadModels = async () => {
       const MODEL_URL = process.env.PUBLIC_URL + '/models';
       Promise.all([
+        faceapi.loadSsdMobilenetv1Model(MODEL_URL),
+        faceapi.loadFaceLandmarkModel(MODEL_URL),
+        faceapi.loadFaceRecognitionModel(MODEL_URL),
         faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
         faceapi.nets.faceLandmark68Net.loadFromUri(MODEL_URL),
         faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL),
@@ -96,7 +98,6 @@ function WebcamCapture() {
   }
 
   const handleCapture = async () => {
-    /* 
     const video = videoRef.current;
     const canvas = document.createElement('canvas');
     canvas.width = video.videoWidth;
@@ -107,7 +108,7 @@ function WebcamCapture() {
     const img = new Image();
     img.src = canvas.toDataURL();
     img.onload = async () => {
-      const detections = await faceapi.detectAllFaces(img).withFaceLandmarks().withFaceDescriptors();
+      const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
       console.log(detections);
       setImage(img);
       setFaceDescriptor(detections[0].descriptor);
@@ -118,16 +119,6 @@ function WebcamCapture() {
       setImage(imageSrc);
       const imageElement = document.createElement('img');
       imageElement.src = imageSrc;
-
-       {faceDetected && <p>Face detectada!</p>}
-      {image && <img src={image} alt="captured" />}
-    */
-    const imageSrc = webcamRef.current.getScreenshot();
-    const image = await faceapi.fetchImage(imageSrc);
-    const canvas = canvasRef.current;
-    canvas.getContext('2d').drawImage(image, 0, 0);
-    const detections = await faceapi.detectAllFaces(image).withFaceLandmarks().withFaceDescriptors();
-    console.log(detections);
   };
 
   const closeWebcam = () => {
@@ -156,7 +147,7 @@ function WebcamCapture() {
               </div>
               <div>
                 <Button onClick={handleCapture}>Capture Image</Button>
-                {image && <img src={image.src} />}
+                {image && <img src={image} alt="captured" />}
               </div>
             </div>
             :
