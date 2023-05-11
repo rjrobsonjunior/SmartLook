@@ -1,5 +1,5 @@
 import * as faceapi from 'face-api.js';
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
 //import "./Checkbox.css";
 
@@ -31,10 +31,12 @@ const Button = styled.button`
 
 function WebcamCapture() {
 
+  const [image, setImage] = useState(null);
+  const [faceDescriptor, setFaceDescriptor] = useState(null);
   const [modelsLoaded, setModelsLoaded] = React.useState(false);
   const [captureVideo, setCaptureVideo] = React.useState(false);
 
-  const videoRef = React.useRef();
+  const videoRef = React.useRef(null);
   const videoHeight = 480;
   const videoWidth = 640;
   const canvasRef = React.useRef();
@@ -66,7 +68,9 @@ function WebcamCapture() {
   }
 
   const handleVideoOnPlay = () => {
+
     setInterval(async () => {
+      
       if (canvasRef && canvasRef.current) {
         canvasRef.current.innerHTML = faceapi.createCanvasFromMedia(videoRef.current);
         const displaySize = {
@@ -88,6 +92,23 @@ function WebcamCapture() {
     }, 100)
   }
 
+  const handleCapture = async () => {
+    const video = videoRef.current;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const img = new Image();
+    img.src = canvas.toDataURL();
+    img.onload = async () => {
+      const detections = await faceapi.detectAllFaces(img).withFaceLandmarks().withFaceDescriptors();
+      console.log(detections);
+      setImage(img);
+      setFaceDescriptor(detections[0].descriptor);
+    };
+  };
+
   const closeWebcam = () => {
     videoRef.current.pause();
     videoRef.current.srcObject.getTracks()[0].stop();
@@ -99,13 +120,9 @@ function WebcamCapture() {
       <div style={{ textAlign: 'center', padding: '10px' }}>
         {
           captureVideo && modelsLoaded ?
-            <button onClick={closeWebcam} style={{ cursor: 'pointer', backgroundColor: 'green', color: 'white', padding: '15px', fontSize: '25px', border: 'none', borderRadius: '10px' }}>
-              Close Webcam
-            </button>
+            <Button onClick={closeWebcam} >Close Webcam</Button>
             :
-            <button onClick={startVideo} style={{ cursor: 'pointer', backgroundColor: 'green', color: 'white', padding: '15px', fontSize: '25px', border: 'none', borderRadius: '10px' }}>
-              Open Webcam
-            </button>
+            <Button onClick={startVideo}>Open Webcam</Button>
         }
       </div>
       {
@@ -116,6 +133,10 @@ function WebcamCapture() {
                 <video ref={videoRef} height={videoHeight} width={videoWidth} onPlay={handleVideoOnPlay} style={{ borderRadius: '10px' }} />
                 <canvas ref={canvasRef} style={{ position: 'absolute' }} />
               </div>
+              <div>
+                <Button onClick={handleCapture}>Capture Image</Button>
+                {image && <img src={image.src} />}
+              </div>
             </div>
             :
             <div>loading...</div>
@@ -124,6 +145,7 @@ function WebcamCapture() {
           </>
       }
     </div>
+
   );
 }
 

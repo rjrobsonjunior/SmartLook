@@ -25,6 +25,9 @@ function App() {
 
   const [users, setUsers] = useState([]);
   const [onEdit, setOnEdit] = useState([null]);
+
+  const [faceFeatures, setFaceFeatures] = useState({});
+  const [faceDescription, setFaceDescription] = useState('');
   
   const getUsers = async () => {
     try {
@@ -43,8 +46,8 @@ function App() {
     <>
       <Container>
         <Title>USUARIOS</Title>
-        <WebcamCapture />
-        <Form onEdit={onEdit} setOnEdit={setOnEdit} getUsers={getUsers} />
+        <WebcamCapture setFaceFeatures={setFaceFeatures} />
+        <Form onEdit={onEdit} setOnEdit={setOnEdit} getUsers={getUsers} faceDescription={faceDescription} setFaceDescription={setFaceDescription} faceFeatures={faceFeatures} />
         <Grid users={users} setUsers={setUsers} setOnEdit={setOnEdit} />
       </Container>
       <ToastContainer theme="dark" autoClose={300} position={toast.POSITION.BUTTON_LEFT} />
