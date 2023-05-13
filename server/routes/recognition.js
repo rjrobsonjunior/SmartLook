@@ -1,11 +1,24 @@
-const faceapi = require('face-api.js');
+const express = require('express');
 const fs = require('fs');
 const path = require('path');
-const express = require('express');
+const bodyParser = require('body-parser');
 const canvas = require("canvas");
+const faceapi = require('face-api.js');
 import { db } from "../db.js";
 
 const router = express.Router();
+
+router.use(bodyParser.json());
+router.use(bodyParser.urlencoded({ extended: true }));
+router.use(express.static('public'));
+router.use(express.urlencoded({ extended: true }));
+router.use(express.json({ limit: '50mb' }));
+
+// Configurações do ESP32-CAM
+const esp32CamUrl = 'http://192.168.1.19';
+const esp32CamPort = 80; 
+
+
 
 const { Canvas, Image, ImageData } = canvas;
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
@@ -15,50 +28,26 @@ Promise.all([
   faceapi.nets.ssdMobilenetv1.loadFromDisk(path.join(__dirname, 'models')),
   faceapi.nets.faceLandmark68Net.loadFromDisk(path.join(__dirname, 'models')),
   faceapi.nets.faceRecognitionNet.loadFromDisk(path.join(__dirname, 'models'))
-]);
+]).then(() => console.log('Models loaded!'));
 
-// insere as informações no banco de dados
-
-router.get('/add', async (req, res) => {
-  // cria o caminho completo para a imagem
-  const imagePath = path.join(__dirname, 'img', '4.jpg');
-
-  // lê a imagem a partir do disco e carrega em um buffer
-  const buffer = fs.readFileSync(imagePath);
-
-  // carrega a imagem do buffer com a biblioteca canvas
-  const img = await canvas.loadImage(buffer);
-
-  // detecta as faces na imagem
-  const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+router.post('/recognition', async (req, res) => {
   
+  //carrega imagem recebida
+  const image = req.body.image;
 
-  // converte as características faciais em um objeto JSON
-  //const json = JSON.stringify(detections.map(d => d.descriptor));
-  const json = JSON.stringify (detections.descriptor);
+  // Decode base64 image
+  const base64Image = image.split(';base64,').pop();
+  const imageBuffer = Buffer.from(base64Image, 'base64');
 
-  db.connect();
+  // Save image to disk
+  const fileName = `${Date.now()}.jpg`;
+  fs.writeFileSync(fileName, imageBuffer);
 
-  const query = "INSERT INTO faceteste (login, senha, face, nome) VALUES (?, ?, ?, ?)";
-  const values = ["456", "12345", json, "Messi"];
+  // Load image from disk and detect face
+  const imageFile = await faceapi.bufferToImage(fs.readFileSync(fileName));
+  const detection = await faceapi.detectSingleFace(imageFile, faceDetectionOptions).withFaceLandmarks().withFaceDescriptor();
 
-  db.query(query, values, function (error, results, fields) {
-    if (error) {
-      console.log(error);
-      res.status(500).send("Erro ao inserir usuário no banco de dados");
-    } else {
-      console.log("Usuário cadastrado com sucesso!");
-      res.status(200).send("Usuário cadastrado com sucesso!");
-    }
-  });
-});
-
-
-router.get('/compare', async (req, res) => {
-
-  db.connect();
-
-  const query = "SELECT * FROM faceteste";
+  const query = "SELECT * FROM CRUD.usuarios";
 
   db.query(query, async function (error, results, fields) {
     if (error) throw error;
@@ -84,13 +73,9 @@ router.get('/compare', async (req, res) => {
       savedDescriptors.push(labeledDescriptors);
     }
 
-    // Carrega a imagem a ser reconhecida
-    const imagePath = path.join(__dirname, 'img', '9.jpg');
-    const buffer = fs.readFileSync(imagePath);
-    const img = await canvas.loadImage(buffer);
-
-    // Extrai as características faciais da imagem
-    const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+      // Load image from disk and detect face
+    const imageFile = await faceapi.bufferToImage(fs.readFileSync(fileName));
+    const detections = await faceapi.detectSingleFace(imageFile, faceDetectionOptions).withFaceLandmarks().withFaceDescriptor();
     let queryDescriptors = [];
     queryDescriptors = detections.descriptor;
     
@@ -144,8 +129,9 @@ router.get('/compare', async (req, res) => {
 
     // Envie a resposta com o resultado da comparação
     res.send(bestMatch.toString());
-    
-  })
+  });
+  // Delete image file from disk
+
 });
 
 export default router;
