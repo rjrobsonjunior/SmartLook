@@ -1,7 +1,9 @@
 import * as faceapi from 'face-api.js';
 import React, { useState, useEffect, useRef } from 'react';
 import styled from 'styled-components';
+import Form from './Form';
 import Webcam from 'react-webcam';
+//import "./Checkbox.css";
 
 
 const WebcamContainer = styled.div`
@@ -29,10 +31,11 @@ const Button = styled.button`
   cursor: pointer;
 `;
 
-function WebcamCapture() {
+function WebcamCapture(props) {
 
   const [image, setImage] = useState(null);
   const [faceDescriptor, setFaceDescriptor] = useState(null);
+
   const [modelsLoaded, setModelsLoaded] = React.useState(false);
   const [captureVideo, setCaptureVideo] = React.useState(false);
 
@@ -111,14 +114,11 @@ function WebcamCapture() {
       const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
       console.log(detections);
       setImage(img);
-      setFaceDescriptor(detections[0].descriptor);
+      if (detections) {
+        props.setFaceFeatures(detections.descriptor);
+      }
     };
     img.src = imgData;
-
-     const imageSrc = webcamRef.current.getScreenshot();
-      setImage(imageSrc);
-      const imageElement = document.createElement('img');
-      imageElement.src = imageSrc;
   };
 
   const closeWebcam = () => {

@@ -24,7 +24,7 @@ const Title = styled.h2``;
 function App() {
 
   const [users, setUsers] = useState([]);
-  const [onEdit, setOnEdit] = useState([null]);
+  const [onEdit, setOnEdit] = useState(null);
 
   const [faceFeatures, setFaceFeatures] = useState({});
   const [faceDescription, setFaceDescription] = useState('');
