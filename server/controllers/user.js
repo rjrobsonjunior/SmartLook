@@ -11,17 +11,13 @@ export const getUsers = (_, res) => {
 };
 
 export const addUser = (req, res) => {
-    const q = "INSERT INTO usuarios(`nome`, `login`, `senha`, `recognition`) VALUES(?)";
+    const q = "INSERT INTO usuarios(`nome`, `login`, `senha`, `recognition1`) VALUES(?)";
   
     const values = [
       req.body.nome,
       req.body.login,
       req.body.senha,
       req.body.recognition1,
-      req.body.recognition2,
-      req.body.recognition3,
-      req.body.recognition4,
-      req.body.recognition5,
     ];
   
     db.query(q, [values], (err) => {
@@ -32,17 +28,13 @@ export const addUser = (req, res) => {
   };
 
   export const updateUser = (req, res) => {
-    const q = "UPDATE usuarios SET `nome` = ?, `login` = ?, `senha` = ?, `recognition` = ? WHERE `id` = ?";
+    const q = "UPDATE usuarios SET `nome` = ?, `login` = ?, `senha` = ?, `recognition1` = ? WHERE `id` = ?";
   
     const values = [ 
       req.body.nome,
       req.body.login,
       req.body.senha,
       req.body.recognition1,
-      req.body.recognition2,
-      req.body.recognition3,
-      req.body.recognition4,
-      req.body.recognition5,
     ];
   
     db.query(q, [...values, req.params.id], (err) => {
