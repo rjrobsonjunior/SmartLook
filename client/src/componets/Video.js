@@ -112,7 +112,7 @@ function WebcamCapture(props) {
     img.src = canvas.toDataURL();
     img.onload = async () => {
       const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
-      console.log(detections);
+      console.log(detections.descriptor);
       setImage(img);
       if (detections) {
         props.setFaceFeatures(detections.descriptor);
