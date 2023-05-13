@@ -1,9 +1,9 @@
-const express = require('express');
-const fs = require('fs');
-const path = require('path');
-const bodyParser = require('body-parser');
-const canvas = require("canvas");
-const faceapi = require('face-api.js');
+import express from 'express';
+import fs from 'fs';
+import path from 'path';
+import bodyParser from 'body-parser';
+import * as Canvas from 'canvas';
+import * as faceapi from 'face-api.js';
 import { db } from "../db.js";
 
 const router = express.Router();
