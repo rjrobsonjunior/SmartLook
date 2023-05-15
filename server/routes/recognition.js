@@ -44,17 +44,11 @@ router.post('/recognition', async (req, res) => {
   //carrega imagem recebida
   const image = req.body.image;
 
-  // Decode base64 image
-  const base64Image = image.split(';base64,').pop();
-  const imageBuffer = Buffer.from(base64Image, 'base64');
-
-  // Save image to disk
-  const fileName = `${Date.now()}.jpg`;
-  fs.writeFileSync(fileName, imageBuffer);
-
-  // Load image from disk and detect face
-  const imageFile = await faceapi.bufferToImage(fs.readFileSync(fileName));
-  const detection = await faceapi.detectSingleFace(imageFile, faceDetectionOptions).withFaceLandmarks().withFaceDescriptor();
+  const targetPath = `tmp/imagemTeste.jpg`;
+  fs.writeFile(targetPath, image, 'base64', function(err) {
+    if (err) throw err;
+    console.log('Imagem salva com sucesso!');
+  });
 
   const query = "SELECT * FROM CRUD.usuarios";
 
@@ -83,7 +77,7 @@ router.post('/recognition', async (req, res) => {
     }
 
       // Load image from disk and detect face
-    const imageFile = await faceapi.bufferToImage(fs.readFileSync(fileName));
+    const imageFile = await faceapi.bufferToImage(fs.readFileSync(targetPath));
     const detections = await faceapi.detectSingleFace(imageFile, faceDetectionOptions).withFaceLandmarks().withFaceDescriptor();
     let queryDescriptors = [];
     queryDescriptors = detections.descriptor;
