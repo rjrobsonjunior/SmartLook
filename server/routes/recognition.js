@@ -1,10 +1,18 @@
 import express from 'express';
 import fs from 'fs';
-import path from 'path';
 import bodyParser from 'body-parser';
-import * as Canvas from 'canvas';
+import * as canvas from 'canvas';
 import * as faceapi from 'face-api.js';
 import { db } from "../db.js";
+import path from 'path';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Now you can use __dirname in the rest of your code
+const filePath = path.join(__dirname, 'models');
 
 const router = express.Router();
 
@@ -23,11 +31,12 @@ const esp32CamPort = 80;
 const { Canvas, Image, ImageData } = canvas;
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 
+
 // carrega o modelo da face-api.js
 Promise.all([
-  faceapi.nets.ssdMobilenetv1.loadFromDisk(path.join(__dirname, 'models')),
-  faceapi.nets.faceLandmark68Net.loadFromDisk(path.join(__dirname, 'models')),
-  faceapi.nets.faceRecognitionNet.loadFromDisk(path.join(__dirname, 'models'))
+  faceapi.nets.ssdMobilenetv1.loadFromDisk(filePath),
+  faceapi.nets.faceLandmark68Net.loadFromDisk(filePath),
+  faceapi.nets.faceRecognitionNet.loadFromDisk(filePath)
 ]).then(() => console.log('Models loaded!'));
 
 router.post('/recognition', async (req, res) => {

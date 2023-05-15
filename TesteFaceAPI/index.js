@@ -18,10 +18,10 @@ Promise.all([
 
 // insere as informações no banco de dados
 const connection = mysql.createConnection({
-  host: 'localhost',
-  user: 'root',
-  password: '12345',
-  database: 'tabela_teste'
+  host: "localhost",
+  user: "root",
+  password: "OficinadeIntegeracao1",
+  database: "CRUD",
 });
 
 app.get('/add', async (req, res) => {
@@ -44,8 +44,8 @@ app.get('/add', async (req, res) => {
 
   connection.connect();
 
-  const query = "INSERT INTO faceteste (login, senha, face, nome) VALUES (?, ?, ?, ?)";
-  const values = ["456", "12345", json, "Messi"];
+  const query = "INSERT INTO usuarios(`nome`, `login`, `senha`, `recognition1`) VALUES(?)";
+  const values = ["Messi", "456", "12345", json];
 
   connection.query(query, values, function (error, results, fields) {
     if (error) {
@@ -65,7 +65,7 @@ app.get('/compare', async (req, res) => {
 
   connection.connect();
 
-  const query = "SELECT * FROM faceteste";
+  const query = "SELECT * FROM usuarios";
 
   connection.query(query, async function (error, results, fields) {
     if (error) throw error;
@@ -76,7 +76,7 @@ app.get('/compare', async (req, res) => {
     for (let i = 0; i < results.length; i++) {
 
       // Extrai as características faciais em formato JSON de cada linha
-      let json = JSON.parse(results[i].face);
+      let json = JSON.parse(results[i].recognition1);
 
       // Converte o objeto em um array
       let values = Object.values(json);
@@ -160,6 +160,6 @@ app.get('/compare', async (req, res) => {
 
 
 // inicia o servidor na porta 3000
-app.listen(3000, () => {
-  console.log('Servidor iniciado na porta 3000');
+app.listen(5000, () => {
+  console.log('Servidor iniciado na porta 5000');
 });
