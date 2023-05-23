@@ -1,7 +1,7 @@
 import express from 'express';
 import Jimp from 'jimp';
 import multer from 'multer';
-import { Canvas, Image, ImageData } from 'canvas';
+import canvas from 'canvas';
 import * as faceapi from 'face-api.js';
 import { db } from "../db.js";
 import path from 'path';
@@ -43,15 +43,16 @@ const upload = multer({ storage: storage });
 
 router.post('/recognition', upload.single('image'), async (req, res) => {
   try {
-    // Carrega a imagem com a biblioteca Jimp
-    console.log(req.file.path);
-    const image = await Jimp.read(req.file.path);
-    // Converte a imagem para um objeto ImageData suportado pelo face-api.js
-    console.log("convertendo imagem");
-    const canvas = new Canvas(image.bitmap.width, image.bitmap.height).then(() => console.log('create canva whit image'));
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(new Image(image.bitmap.width, image.bitmap.height));
-    const imageData = ctx.getImageData(0, 0, image.bitmap.width, image.bitmap.height);
+    // Acesso à imagem através do req.file.buffer
+    const buffer = req.file.buffer;
+    const img = await canvas.loadImage(buffer);
+
+    // Extrai as características faciais da imagem
+    const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+    if (!detections) {
+      res.status(400).send('Nenhuma face detectada na imagem');
+      return;
+    }
 
     // Detecta as faces na imagem usando o face-api.js
     const detection = await faceDetectionNet.detectSingleFace(imageData, faceDetectionOptions);
