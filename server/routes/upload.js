@@ -1,6 +1,5 @@
-import express from 'express';
-import multer from 'multer';
-
+const express = require('express');
+const multer = require('multer');
 const router = express.Router();
 
 const storage = multer.diskStorage({

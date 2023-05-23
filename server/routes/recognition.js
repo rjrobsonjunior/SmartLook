@@ -1,51 +1,67 @@
-import express from 'express';
-import Jimp from 'jimp';
-import multer from 'multer';
-import canvas from 'canvas';
-import * as faceapi from 'face-api.js';
-import { db } from "../db.js";
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { dirname } from 'path';
+const express = require('express');
+const path = require('path');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const bodyParser = require('body-parser');
+const faceapi = require('face-api.js');
+const { db } = require('../db.js');
 
-// Now you can use __dirname in the rest of your code
-const filePath = path.join(__dirname, 'models');
-
-
-
-const router = express.Router();
-
-//const { Canvas, Image, ImageData } = canvas;
+const canvas = require("canvas");
+const { Canvas, Image, ImageData } = canvas;
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+const multer = require('multer');
 
-
-// carrega o modelo da face-api.js
-Promise.all([
-  faceapi.nets.ssdMobilenetv1.loadFromDisk(filePath),
-  faceapi.nets.faceLandmark68Net.loadFromDisk(filePath),
-  faceapi.nets.faceRecognitionNet.loadFromDisk(filePath)
-]).then(() => console.log('Models loaded!'));
-
-// 
+/*
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, './routes/uploads')
+    cb(null, 'img');
   },
   filename: function (req, file, cb) {
-    cb(null, file.originalname)
+    cb(null, 'img.jpg');
   }
 });
 
 const upload = multer({ storage: storage });
+*/
 
-router.post('/recognition', upload.single('image'), async (req, res) => {
+const upload = multer().single('imagem'); // 'image' é o nome do campo que contém a imagem na requisição POST
+
+
+const router = express.Router();
+router.use(bodyParser.json());
+router.use(bodyParser.urlencoded({ extended: true }));
+router.use(express.static('public'));
+router.use(express.urlencoded({ extended: true }));
+router.use(express.json({ limit: '50mb' }));
+
+const modelsPath = '/home/rj/Documentos/OF1/server/routes/models';
+
+
+// carrega o modelo da face-api.js
+Promise.all([
+  faceapi.nets.ssdMobilenetv1.loadFromDisk(path.join(modelsPath)),
+  faceapi.nets.faceLandmark68Net.loadFromDisk(path.join(modelsPath)),
+  faceapi.nets.faceRecognitionNet.loadFromDisk(path.join(modelsPath))
+]).then(() => console.log('Models loaded!'));
+
+router.post('/recognition', upload, async (req, res) => {
+  
   try {
+
+    /* IMAGEM RECEBIDA VIA POST */
+
+    // Verifique se a imagem foi enviada corretamente
+    if (!req.file) {
+      res.status(400).send('Nenhuma imagem enviada');
+      return;
+    }
+
     // Acesso à imagem através do req.file.buffer
     const buffer = req.file.buffer;
     const img = await canvas.loadImage(buffer);
+    
+    if(img){
+      console.log("Imagem carregada pelo canvas!");
+    }
 
     // Extrai as características faciais da imagem
     const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
@@ -53,46 +69,94 @@ router.post('/recognition', upload.single('image'), async (req, res) => {
       res.status(400).send('Nenhuma face detectada na imagem');
       return;
     }
-
-    // Detecta as faces na imagem usando o face-api.js
-    const detection = await faceDetectionNet.detectSingleFace(imageData, faceDetectionOptions);
-
-    if (!detection) {
-      return res.status(400).json({ error: 'Nenhuma face detectada na imagem.' });
+    else
+    {
+      console.log("Imagem analisada pela face-api!");
     }
 
-    // Extrai as características da face usando o face-api.js
-    const faceDescriptor = await faceRecognitionNet.computeFaceDescriptor(imageData, detection.box);
+    const queryDescriptors = detections.descriptor; 
 
-    // Consulta o banco de dados em busca do usuário com a descrição facial mais próxima
-    db.query( 'SELECT id, recognition1 FROM CRUD.usuarios',
-      async (error, results) => {
-        if (error) throw error;
+    /* CARACTERISTICAS DAS IMAGENS NO BANCO DE DADOS */
 
-        let bestMatch = null;
-        let bestMatchDistance = Number.MAX_VALUE;
+    const query = "SELECT * FROM usuarios";
 
-        for (const result of results) {
-          const descriptorBuffer = Buffer.from(result.recognition1, 'hex');
-          const referenceDescriptor = new Float32Array(descriptorBuffer.buffer);
-          const distance = faceapi.euclideanDistance(faceDescriptor, referenceDescriptor);
+    db.query(query, async function (error, results, fields) {
+      if (error) throw error;
+      console.log("Entrei no connect");
 
-          if (distance < bestMatchDistance) {
-            bestMatchDistance = distance;
-            bestMatch = result;
-          }
-        }
+      let savedDescriptors = [];
 
-        if (!bestMatch) {
-          return res.status(404).json({ error: 'Nenhum usuário encontrado.' });
-        }
+      // Extrai as informações de cada linha do resultado da consulta
+      for (let i = 0; i < results.length; i++) {
 
-        return res.json({ id: bestMatch.id, distance: bestMatchDistance });
+        // Extrai as características faciais em formato JSON de cada linha
+        let json = JSON.parse(results[i].recognition1);
+
+        // Converte o objeto em um array
+        let values = Object.values(json);
+
+        // Converte o JSON em um array de descritores faciais
+        let descriptors = new Float32Array(values);
+
+        // Converte as características faciais em formato JSON em um objeto LabeledFaceDescriptors do face-api.js
+        let labeledDescriptors  = new faceapi.LabeledFaceDescriptors(results[i].nome, [descriptors]);
+        
+        // Adiciona os descritores do usuário ao array de descritores
+        savedDescriptors.push(labeledDescriptors);
       }
-    );
-  } catch (err) {
-    return res.status(500).json({error: err.message});
+
+
+      /* DEBUG */
+      if (savedDescriptors.length === 0) {
+        console.log('Não há descritores salvos para comparar');
+        res.status(500).send("Não há descritores salvos para comparar");
+      }
+
+      if (queryDescriptors.length === 0) {
+        console.log('Não há descritores na imagem para comparar');
+        res.status(500).send("Não há descritores na imagem para comparar");
+        
+      }
+      
+      // Verifica se todos os descritores faciais têm o mesmo tamanho
+      let allSameSize = true;
+      for (let i = 0; i < savedDescriptors.length; i++) {
+        if (savedDescriptors[i].descriptors[0].length !== queryDescriptors.length) {
+          console.log("IMG 1");
+          console.log(savedDescriptors[i].descriptors[0].length);
+          console.log("IMG 2");
+          console.log(queryDescriptors.length)
+          allSameSize = false;
+          break;
+        }
+      }
+
+      if (!allSameSize) 
+      {
+        console.log('Erro: nem todos os descritores faciais têm o mesmo tamanho');
+        res.status(500).send("As dimensões dos descritores não são iguais");
+      } 
+
+      // Compara as características faciais da imagem com as características faciais do banco de dados
+      const faceMatcher = new faceapi.FaceMatcher(savedDescriptors);
+      const bestMatch = faceMatcher.findBestMatch(queryDescriptors);
+      const result = bestMatch.toString() 
+
+      // Identifica a pessoa na imagem
+      console.log(result);
+
+      // Envie a resposta com o resultado da comparação
+      res.status(200).send(result);
+    });
+
+  } catch (error) {
+    console.error('Erro ao processar a imagem:', error);
+    res.status(500).send('Erro ao processar a imagem');
   }
+
+
 });
 
-export default router;
+
+//export default router;
+module.exports = router;

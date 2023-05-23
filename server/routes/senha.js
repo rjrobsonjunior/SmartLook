@@ -1,5 +1,5 @@
-import express from 'express';
-import { db } from "../db.js";
+const express = require('express');
+const { db } = require('../db.js');
 
 const router = express.Router();
 
@@ -28,4 +28,4 @@ router.post('/login', (req, res) => {
     });
   });
 
-export default router;
+module.exports = router;

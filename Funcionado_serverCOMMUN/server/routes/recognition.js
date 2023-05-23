@@ -45,7 +45,7 @@ router.use(express.static('public'));
 router.use(express.urlencoded({ extended: true }));
 router.use(express.json({ limit: '50mb' }));
 
-const modelsPath = 'C:/Users/Adryan/Desktop/Adryan/Estudo/Faculdade/3º Periodo/Oficina/FECHADURA_ELETRONICA/codes/projetosOficina/NodeJS-Robson/server/routes/models';
+const modelsPath = '/home/rj/Documentos/OF1/Funcionado_serverCOMMUN/server/routes/models';
 
 
 // carrega o modelo da face-api.js
