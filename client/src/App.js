@@ -2,6 +2,7 @@ import GlobalStyle  from "./styles/global";
 import styled from "styled-components";
 import Form from "./componets/Form.js";
 import Grid from "./componets/Grid.js";
+import Dashboard from "./componets/Dashboard";
 import WebcamCapture from "./componets/Video";
 import { useEffect, useState } from "react";
 import { toast, ToastContainer } from "react-toastify";
@@ -33,7 +34,7 @@ function App() {
     try {
       const res = await axios.get("http://localhost:8800");
       setUsers(res.data.sort((a, b) => (a.nome > b.nome ? 1 : -1)));
-    } catch (error) {
+    } catch (error) {   
       toast.error(error);
     }
   };
