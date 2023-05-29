@@ -143,6 +143,7 @@ router.post('/recognition', upload, async (req, res) => {
       const result = bestMatch.toString() 
 
       // Identifica a pessoa na imagem
+      console.log("result:")
       console.log(result);
 
       // Envie a resposta com o resultado da comparação
