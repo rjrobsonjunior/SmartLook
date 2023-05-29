@@ -122,9 +122,7 @@ router.post('/recognition', upload, async (req, res) => {
       let allSameSize = true;
       for (let i = 0; i < savedDescriptors.length; i++) {
         if (savedDescriptors[i].descriptors[0].length !== queryDescriptors.length) {
-          console.log("IMG 1");
           console.log(savedDescriptors[i].descriptors[0].length);
-          console.log("IMG 2");
           console.log(queryDescriptors.length)
           allSameSize = false;
           break;

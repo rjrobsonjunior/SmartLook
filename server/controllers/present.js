@@ -11,14 +11,13 @@ const getUsers = (_, res) => {
 };
 
 const addUser = (req, res) => {
-  const q = "INSERT INTO usuarios(`id`, `nome`, `login`) VALUES(?)";
-    /* 
+  const q = "INSERT INTO presents(`id`, `nome`, `login`) VALUES(?)";
+    
   const values = [
+    req.body.id,
     req.body.nome,
-    req.body.login,
-    req.body.senha,
-    req.body.recognition1,
-  ];*/
+    req.body.login
+  ]
 
   db.query(q, [values], (err) => {
     if (err) return res.json(err);
@@ -28,7 +27,7 @@ const addUser = (req, res) => {
 };
 
 const deleteUser = (req, res) => {
-  const q = "DELETE FROM usuarios WHERE `id` = ?";
+  const q = "DELETE FROM presents WHERE `id` = ?";
 
   db.query(q, [req.params.id], (err) => {
     if (err) return res.json(err);
