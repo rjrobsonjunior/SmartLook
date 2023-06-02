@@ -9,7 +9,6 @@ router.post('/exit', (req, res) => {
   const senha = req.body.senha;
 
   const query = `SELECT id FROM usuarios WHERE login = '${login}' AND senha = '${senha}' `;
-  const values = [login, senha];
 
   db.query(query, (err, result) => {
     
@@ -17,7 +16,7 @@ router.post('/exit', (req, res) => {
 
     if (result.length > 0) {
       const id = result[0].id;
-      res.redirect(`/presents/${id}`);
+      res.redirect(`/delete/${id}`);
     } else {
       res.send('Usuário não encontrado');
     }
