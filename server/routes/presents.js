@@ -8,7 +8,9 @@ const {
 const router = express.Router();
 
 router.get("/presents", getUsers);
-router.get("/insert/:id/:nome/:login", addUser);
+//router.get("/insert/:id/:nome/:login", addUser);
+router.get("/insert", addUser);
+
 //router.delete("/presents:id", deleteUser);
 router.get("/delete/:id", deleteUser);
 
