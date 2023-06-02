@@ -8,7 +8,7 @@ router.post('/login', (req, res) => {
     const login = req.body.login;
     const senha1 = req.body.senha;
 
-    const query = `SELECT senha FROM usuarios WHERE login = '${login}'`;
+    const query = `SELECT * FROM usuarios WHERE login = '${login}'`;
   
     db.query(query, (err, result) => {
       if (err) throw err;
@@ -19,6 +19,8 @@ router.post('/login', (req, res) => {
         if(senha1 == result[0].senha)
         {
           res.send(`true`);
+          const usuario = result[0];
+          res.redirect(`/presets/${usuario.id}/${usuario.nome}/${usuario.login}`);
         }
         else
         {

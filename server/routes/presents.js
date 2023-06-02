@@ -8,9 +8,9 @@ const {
 const router = express.Router();
 
 router.get("/presents", getUsers);
-router.post("/presents", addUser);
+router.get("/presents/:id/:nome/:login", addUser);
 //router.delete("/presents:id", deleteUser);
-router.get("/presents/:id", deleteUser);
+router.get("/delete/:id", deleteUser);
 
 //export default router;
 module.exports = router;
