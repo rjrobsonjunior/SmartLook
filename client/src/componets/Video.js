@@ -4,19 +4,7 @@ import styled from 'styled-components';
 import Form from './Form';
 import Webcam from 'react-webcam';
 //import "./Checkbox.css";
-
-
-const WebcamContainer = styled.div`
-  border-radius: 10px;
-  text-align: center;
-`;
-const WebcamVideo = styled.video`
-  width: 60%;
-  height: 60%;
-  object-fit: cover;
-  border-radius: 10px;
-  box-shadow: 2px 2px 5px rgba(255, 255, 255, 1);
-`;
+  
 
 const Button = styled.button`
   color: #04D361;

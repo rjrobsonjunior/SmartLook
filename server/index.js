@@ -3,6 +3,7 @@ const userRoutes = require("./routes/users.js");
 const SenhaRoutes = require("./routes/senha.js");
 const RecognitionRoutes = require("./routes/recognition.js");
 const presentRoutes = require("./routes/presents.js")
+const exitRoutes = require("./routes/exit.js");
 const cors = require("cors");
 const app = express();
 
@@ -14,5 +15,6 @@ app.use("/", userRoutes);
 app.use("/", SenhaRoutes);
 app.use("/", RecognitionRoutes);
 app.use("/", presentRoutes);
+app.use("/", exitRoutes);
 
 app.listen(8800);

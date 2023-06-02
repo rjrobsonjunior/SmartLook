@@ -54,6 +54,8 @@ const Grid = ({users, setUsers, setOnEdit}) => {
         toast.success(data);
       })
       .catch(({ data }) => toast.error(data));
+      
+    console.log("http://localhost:8800/" + id);
 
     setOnEdit(null);
   };
