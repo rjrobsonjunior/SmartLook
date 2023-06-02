@@ -9,22 +9,7 @@ const canvas = require("canvas");
 const { Canvas, Image, ImageData } = canvas;
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
 const multer = require('multer');
-
-/*
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, 'img');
-  },
-  filename: function (req, file, cb) {
-    cb(null, 'img.jpg');
-  }
-});
-
-const upload = multer({ storage: storage });
-*/
-
 const upload = multer().single('imagem'); // 'image' é o nome do campo que contém a imagem na requisição POST
-
 
 const router = express.Router();
 router.use(bodyParser.json());
@@ -34,6 +19,7 @@ router.use(express.urlencoded({ extended: true }));
 router.use(express.json({ limit: '50mb' }));
 
 const modelsPath = '/home/rj/Documentos/OF1/server/routes/models';
+const caminhoDestino = './uploads/imagem.jpg';
 
 
 // carrega o modelo da face-api.js
@@ -54,6 +40,20 @@ router.post('/recognition', upload, async (req, res) => {
       res.status(400).send('Nenhuma imagem enviada');
       return;
     }
+    
+    // Salve a imagem em disco
+    await new Promise((resolve, reject) => {
+      fs.writeFile(caminhoDestino, req.file.buffer, (err) => {
+        if (err) {
+          console.error('Erro ao salvar a imagem:', err);
+          res.status(500).send('Erro ao salvar a imagem');
+          reject(err);
+        } else {  
+          console.log('Imagem salva com sucesso');
+          resolve();
+        }
+      });
+    });
 
     // Acesso à imagem através do req.file.buffer
     const buffer = req.file.buffer;
@@ -65,10 +65,13 @@ router.post('/recognition', upload, async (req, res) => {
 
     // Extrai as características faciais da imagem
     const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+    
     if (!detections) {
-      res.status(400).send('Nenhuma face detectada na imagem');
+      console.log("Nenhuma face detectada na imagem");
+      res.status(550).send('Nenhuma face detectada na imagem');
       return;
     }
+
     else
     {
       console.log("Imagem analisada pela face-api!");
@@ -144,8 +147,16 @@ router.post('/recognition', upload, async (req, res) => {
       console.log("result:")
       console.log(result);
 
-      // Envie a resposta com o resultado da comparação
-      res.status(200).send(result);
+      if(result.includes('unknown'))
+      {
+        res.status(200).send(false);
+      }
+      else
+      {
+        res.status(200).send(true);
+      }
+
+      
     });
 
   } catch (error) {
@@ -156,6 +167,4 @@ router.post('/recognition', upload, async (req, res) => {
 
 });
 
-
-//export default router;
 module.exports = router;
