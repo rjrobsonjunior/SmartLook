@@ -1,75 +1,4 @@
-#include <Arduino.h>
-#include <HardwareSerial.h>
-
-#include <WiFi.h>
-#include <HTTPClient.h>
-#include <WiFiClientSecure.h>
-#include <ESPAsyncWebServer.h>
-#include <AsyncWebSocket.h>
-
-#include "esp_camera.h"
-#include "SPIFFS.h"
-#include "esp_timer.h"
-#include "img_converters.h"
-#include "soc/soc.h"           // Disable brownout problems
-#include "soc/rtc_cntl_reg.h"  // Disable brownout problems
-#include "driver/rtc_io.h"
-#include <StringArray.h>
-#include <FS.h>
-#include "fb_gfx.h"
-
-//#include "esp_http_client.h"
-//#include "esp_http_server.h"
-
-const char* serverUrl = "http://192.168.1.5:3000/uploadImagem";
-const char* ssid = "Adryan e Enzo";
-const char* password = "corvssan";
-
-AsyncWebServer server(80);
-String messages = "";
-String serverESP = "";
-
-
-//Teste envio da imagem em partes
-WiFiClient client;
-WiFiClientSecure cliente;
-
-String serverNameS = "fechaduraeletronica.000webhostapp.com";
-String serverPathS= "/upload.php";
-const int serverPortS = 443;
-
-String serverName = "192.168.1.5";
-String serverPath = "/uploadPedacos";
-String serverPath2 = "/uploadImagem";
-const int serverPort = 3000;
-
-//Comunicação Serial
-HardwareSerial SerialESP32(1);
-#define PORT_RX 3 
-#define PORT_TX 1
-
-// OV2640 camera module pins (CAMERA_MODEL_AI_THINKER)
-#define PWDN_GPIO_NUM 32
-#define RESET_GPIO_NUM -1
-#define XCLK_GPIO_NUM 0
-#define SIOD_GPIO_NUM 26
-#define SIOC_GPIO_NUM 27
-#define Y9_GPIO_NUM 35
-#define Y8_GPIO_NUM 34
-#define Y7_GPIO_NUM 39
-#define Y6_GPIO_NUM 36
-#define Y5_GPIO_NUM 21
-#define Y4_GPIO_NUM 19
-#define Y3_GPIO_NUM 18
-#define Y2_GPIO_NUM 5
-#define VSYNC_GPIO_NUM 25
-#define HREF_GPIO_NUM 23
-#define PCLK_GPIO_NUM 22
-#define FLASH_GPIO_NUM 4
-
-
-//Caminho da foto
-#define FILE_PHOTO "/imagem.jpg"
+#include "includes.h"
 
 //Variavel de controle
 boolean takeNewPhoto = false;
@@ -77,6 +6,11 @@ boolean takeNewPhoto = false;
 //Variavel que armazena sempre a ultima foto
 camera_fb_t* last_photo = NULL;
 
+WiFiClient client;
+WiFiClientSecure cliente;
+
+String messages = "";
+String serverESP = "";
 
 /*
 //Referente ao liveview
@@ -103,19 +37,41 @@ const char index_html[] PROGMEM = R"rawliteral(
     <h2>ESP32-CAM Foto</h2>
     <p>
       <button onclick="rotatePhoto();">ROTATE</button>
-      <button onclick="capturePhoto()">CAPTURE PHOTO</button>
-      <button onclick="location.reload();">REFRESH PAGE</button>
+      <button onclick="capturePhoto()">TIRAR FOTO</button>
+      <button onclick="location.reload();">RECARREGAR</button>
+      <button onclick="analisaFoto()">ANALISAR</button>
     </p>
+    <p id="countdown"></p>
   </div>
   <div><img src="saved-photo" id="photo" width="70%"></div>
 </body>
 <script>
-  var deg = 0;
   function capturePhoto() {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', "/capture", true);
     xhr.send();
+
+    // Inicia o contador
+    var seconds = 5;
+    var countdown = document.getElementById("countdown");
+    countdown.innerHTML = seconds;
+    var interval = setInterval(function() {
+      seconds--;
+      countdown.innerHTML = seconds;
+      if (seconds == 0) {
+        clearInterval(interval);
+        countdown.innerHTML = "";
+      }
+    }, 1000);
   }
+
+  function analisaFoto() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', "/analisaFoto", true);
+    xhr.send();
+  }
+
+  var deg = 0;
   function rotatePhoto() {
     var img = document.getElementById("photo");
     deg += 90;
@@ -124,6 +80,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     img.style.transform = "rotate(" + deg + "deg)";
   }
   function isOdd(n) { return Math.abs(n % 2) == 1; }
+
 </script>
 </html>)rawliteral";
 
@@ -134,28 +91,30 @@ void Aprint(String mensagem)
 
   //Requisição POST para imprimir na pagina web
   HTTPClient req;
-  String url = serverESP + ":80/log";
+  //String url = serverESP + ":80/log";
+  String url = "http://192.168.1.19/log";
+  mensagem = "message="+mensagem;
   req.begin(url);
   req.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  req.addHeader("Content-Length", String(mensagem.length()));
+
   int httpResponseCode = req.POST(mensagem);
 
 
   if (httpResponseCode > 0) {
-    Serial.print("void print() | HTTP Response code: ");
+    Serial.print("void Aprint() | HTTP Response code: ");
     Serial.println(httpResponseCode);
   } 
   else {
-    Serial.print("void print() | Error on HTTP request: ");
+    Serial.print("void Aprint() | Error on HTTP request: ");
     Serial.println(httpResponseCode);
   }
   
   req.end();
 }
 
-
 void initCamera()
 {
-
   // OV2640 camera module
   camera_config_t config;
   config.ledc_channel = LEDC_CHANNEL_0;
@@ -179,6 +138,9 @@ void initCamera()
   config.xclk_freq_hz = 20000000;
   config.pixel_format = PIXFORMAT_JPEG;
 
+  //Iniicaliza o flash
+  pinMode(FLASH_GPIO_NUM, OUTPUT);
+
   if (psramFound())
   {
     config.frame_size = FRAMESIZE_SVGA;
@@ -200,8 +162,49 @@ void initCamera()
   }
 }
 
+void piscarLED()
+{
+  //INDICAR QUE O ESPCAM ESTA LIGANDO
+  digitalWrite(FLASH_GPIO_NUM, HIGH);
+  delay(500); 
+  digitalWrite(FLASH_GPIO_NUM, LOW); 
+}
+
+void initSPIFFS()
+{
+  //Inicilizando SPIFFS
+  if (!SPIFFS.begin(true)) {
+    Serial.println("An Error has occurred while mounting SPIFFS");
+    ESP.restart();
+  }
+  else {
+    delay(500);
+    Serial.println("SPIFFS mounted successfully");
+  }
+}
+
+void connectWiFi()
+{
+  WiFi.begin(ssid, password);
+  Serial.print("Conectando à rede Wi-Fi");
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(1000);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("Conectado à rede Wi-Fi");
+  Serial.print("Endereço de IP: http://");
+
+  IPAddress ipESP = WiFi.localIP();
+  serverESP = ipESP.toString();
+
+  Serial.println(ipESP);
+}
+
 // Função para salvar a imagem no SPIFFS
-void salvarImagem(camera_fb_t* img) 
+void salvarImagemSPIFFS(camera_fb_t* img) 
 {
   Serial.printf("Picture file name: %s\n", FILE_PHOTO);
 
@@ -242,22 +245,25 @@ void tiraFoto()
   bool ok = 0; 
 
   //camera_fb_t* fb = NULL;  
-  Aprint("tirando foto!");
   
   do{
-    for(int i = 5; i >= 1; i--)
-    {
-      Serial.print("A foto será tirada em ");
-      Serial.print(i);
-      Serial.println(" segundos");
-      delay(1000);
-    }
 
     // Captura a imagem em JPEG
     //fb = esp_camera_fb_get();
 
-    //Variavel global para teste de envio
+    for(int i = 3; i>0; i--)
+    {
+      Serial.println("Foto sera tirada em " + i);
+      digitalWrite(FLASH_GPIO_NUM, HIGH);
+      delay(1000);
+      digitalWrite(FLASH_GPIO_NUM, LOW);  
+    }
+
+    //Tirando a foto
+    digitalWrite(FLASH_GPIO_NUM, HIGH);
+    delay(200); 
     last_photo = esp_camera_fb_get();
+    digitalWrite(FLASH_GPIO_NUM, LOW);
 
     
     // Verifica se a imagem foi capturada com sucesso
@@ -270,68 +276,195 @@ void tiraFoto()
     }
 
     //Salva a foto no esp32cam
-    salvarImagem(last_photo);
+    salvarImagemSPIFFS(last_photo);
 
     //Verifico se a foto foi salva corretamente
     ok = checarSalvamento(SPIFFS);
     
   }
-  while(!ok);
-  
-  //do-while forma de loop que permite com que o bloco seja executado a primeira vez para ai se verificar a condição
+  while(!ok);  //do-while forma de loop que permite com que o bloco seja executado a primeira vez para ai se verificar a condição
+
 
 }
 
-//Envia a foto para a aplicação node.js
-void enviarFotoJPEG()
+//Envia a foto para a aplicação node.js que ja compara para ver se existe no banco de dados (FUNCIONANDO COM O FS)
+String EnvioAnaliseIMG()
 {
+  String resposta_servidor = "";
 
   // Abre o arquivo de imagem salvo no SPIFFS
   File file = SPIFFS.open(FILE_PHOTO, FILE_READ);
-
+  
   if (!file) {
     Serial.println("Falha ao abrir o arquivo de imagem");
-    return;
+    resposta_servidor = "Falha ao abrir o arquivo de imagem";
+    return resposta_servidor;
   }
 
-  // Lê o conteúdo do arquivo e armazena em um buffer
-  uint8_t* buffer = (uint8_t*) malloc(file.size());
-  file.read(buffer, file.size());
+  else{  
+    // Lê o conteúdo do arquivo e armazena em um buffer
+    uint8_t* buffer = (uint8_t*) malloc(file.size());
+    file.read(buffer, file.size());
 
-  // Envia a imagem para o servidor
-  HTTPClient http;
-  http.begin(serverUrl);
+    // Envia a imagem para o servidor
+    HTTPClient http;
+    http.begin(serverUrlANALISE);
 
-  // Anexa o arquivo de imagem como um anexo à solicitação HTTP POST
-  http.addHeader("Content-Disposition", "attachment; filename=imagem.jpg");
-  http.addHeader("Content-Type", "image/jpeg");
-  http.addHeader("Content-Length", String(file.size()));
+    // Anexa o arquivo de imagem como um anexo à solicitação HTTP POST
+    http.addHeader("Content-Disposition", "attachment; filename=imagem.jpg");
+    http.addHeader("Content-Type", "image/jpeg");
+    http.addHeader("Content-Length", String(file.size()));
 
-  Serial.print("Enviando a imagem para o servidor: ");
-  Serial.println(serverUrl); 
+    Serial.print("Enviando a imagem para o servidor: ");
+    Serial.println(serverUrlANALISE); 
 
-  int httpResponseCode = http.POST(buffer, file.size());  
-  
-  if(httpResponseCode > 0) {
+    int httpResponseCode = http.POST(buffer, file.size());  
 
-    Serial.print("Tamanho da imagem: ");
-    Serial.println(file.size());
+    if(httpResponseCode == 200) {
+      
+      resposta_servidor = http.getString();
+      Serial.print("Tamanho da imagem: ");
+      Serial.println(file.size());
 
-    Serial.print("Resposta do servidor: ");   
-    Serial.println(httpResponseCode);
-    Serial.println(http.getString());
+      Serial.print("Resposta do servidor: ");   
+      Serial.println(httpResponseCode);
+      Serial.println(resposta_servidor);
 
-  } else {
-    Serial.println("Falha ao enviar a imagem");
+    } else {
+      Serial.println("Falha ao enviar a imagem");
+      resposta_servidor = "Falha ao enviar a imagem. Resposta do servidor: " + httpResponseCode;
+    }
+    
+    free (buffer);
+
+    //Fecha o arquivo
+    file.close();
+
+    http.end();
+    return resposta_servidor;
   }
+
+}
+
+//(MULTER) Envia a foto para a aplicação node.js que ja compara para ver se existe no banco de dados
+String EnvioAnaliseIMGMulter()
+{
+  String resposta_servidor = "";
+
+  // Abre o arquivo de imagem salvo no SPIFFS
+  File file = SPIFFS.open(FILE_PHOTO, FILE_READ);
   
-  free (buffer);
+  if (!file) {
+    Serial.println("Falha ao abrir o arquivo de imagem");
+    resposta_servidor = "Falha ao abrir o arquivo de imagem";
+  }
 
-  //Fecha o arquivo
-  file.close();
+  else{  
+    // Lê o conteúdo do arquivo e armazena em um buffer
+    size_t size = file.size();
+    uint8_t* buffer = (uint8_t*) malloc(size);
+    file.read(buffer, size);
 
-  http.end();
+    WiFiClient client;
+    if (!client.connect(serverIP, 8800)) {
+      Serial.println("Falha ao conectar ao servidor");
+      resposta_servidor = "Falha ao conectar ao servidor";
+      return resposta_servidor;
+    }
 
+    // Gerar um valor de boundary único | Valor serve para identificar o começo e final da requisição
+    String boundary = "--------------------------" + String(millis());
+
+    // Criação do corpo da requisição
+    String requestBody = "--" + boundary + "\r\n";
+    requestBody += "Content-Disposition: form-data; name=\"imagem\"; filename=\"imagem.jpg\"\r\n";
+    requestBody += "Content-Type: image/jpeg\r\n";
+    requestBody += "\r\n";
+    requestBody += String((char*)buffer, size) + "\r\n";
+    requestBody += "--" + boundary + "--\r\n";
+
+    // Construir a requisição HTTP
+    String request = "POST /recognition HTTP/1.1\r\n";
+    request += "Host: " + String(serverIP) + "\r\n";
+    request += "Content-Type: multipart/form-data; boundary=" + boundary + "\r\n";
+    request += "Content-Length: " + String(requestBody.length()) + "\r\n";
+    request += "\r\n";
+    request += requestBody;
+
+    Serial.print("REQUISIÇÃO | Enviando a imagem para o servidor: ");
+    Serial.println(serverUrlANALISE); 
+
+    // Envie a requisição HTTP
+    client.print(request);
+
+    int statusCode = 0;
+    String statusCode2 = "";
+
+    // Aguarde a resposta do servidor
+    while (client.connected()) {
+
+      if (client.available()) {
+
+        // Leia e processe a resposta do servidor
+        String response = client.readString();
+        Serial.println("\nREQUISIÇÃO | Codigo completo da resposta da requisição:\n");
+        Serial.println(response);
+
+        // Extrair o código de resposta
+        int statusCodeStart = response.indexOf(' ') + 1;
+        int statusCodeEnd = response.indexOf(' ', statusCodeStart);
+        String statusCodeString = response.substring(statusCodeStart, statusCodeEnd);
+        statusCode = atoi(statusCodeString.c_str());
+
+        // Extrair a última linha da resposta
+        int lastNewlinePos = response.lastIndexOf('\n');
+        String lastLine = response.substring(lastNewlinePos + 1);
+
+        resposta_servidor = lastLine;
+        break;
+      }
+
+      esp_task_wdt_reset();
+
+    }
+
+    Serial.println("-----------------------------------------");
+    Serial.print("Codigo da requisição = ");
+    Serial.println(statusCode);
+    Serial.println("Resposta da ultima linha = " + resposta_servidor);
+    Serial.println("-----------------------------------------");
+
+    // Feche a conexão
+    client.stop();
+
+    // Verifique a resposta
+    if (statusCode == 200) {
+
+      // Processar a resposta do servidor
+      Serial.println();
+      Serial.println("Analise realizada com sucesso!");
+      Serial.println("Resposta do servidor: " + resposta_servidor);
+    }
+    else if(statusCode == 550)
+    {
+      // Lidar com a falha na comunicação
+      Serial.println("Rosto nao encontrado na imagem!");
+      resposta_servidor = "550";
+    }
+    else
+    {
+      Serial.println("REQUISIÇÃO | Falha na requisição POST!");
+    }
+
+    //Fecha o arquivo
+    file.close();
+
+    free(buffer);
+
+    Serial.println("REQUISIÇÃO | Resposta = " + resposta_servidor);
+  }
+
+  return resposta_servidor;
 }
 
 //Envia a foto para um servidor externo rodando um script php
@@ -402,94 +535,61 @@ String sendPhotoHTTPS() {
   return getBody;
 }
 
-//Parte de Stream da Camera -> Ver depois pois da conflito entre a blbioteca ESPAsyncWebserver e a esp_http_server
-/*
-static esp_err_t stream_handler(httpd_req_t *req){
-  camera_fb_t * fb = NULL;
-  esp_err_t res = ESP_OK;
-  size_t _jpg_buf_len = 0;
-  uint8_t * _jpg_buf = NULL;
-  char * part_buf[64];
-  res = httpd_resp_set_type(req, _STREAM_CONTENT_TYPE);
-  if(res != ESP_OK){
-    return res;
-  }
-  while(true){
-    fb = esp_camera_fb_get();
-    if (!fb) {
-      Serial.println("Camera capture failed");
-      res = ESP_FAIL;
-    } else {
-      if(fb->width > 400){
-        if(fb->format != PIXFORMAT_JPEG){
-          bool jpeg_converted = frame2jpg(fb, 80, &_jpg_buf, &_jpg_buf_len);
-          esp_camera_fb_return(fb);
-          fb = NULL;
-          if(!jpeg_converted){
-            Serial.println("JPEG compression failed");
-            res = ESP_FAIL;
-          }
-        } else {
-          _jpg_buf_len = fb->len;
-          _jpg_buf = fb->buf;
-        }
-      }
-    }
-    if(res == ESP_OK){
-      size_t hlen = snprintf((char *)part_buf, 64, _STREAM_PART, _jpg_buf_len);
-      res = httpd_resp_send_chunk(req, (const char *)part_buf, hlen);
-    }
-    if(res == ESP_OK){
-      res = httpd_resp_send_chunk(req, (const char *)_jpg_buf, _jpg_buf_len);
-    }
-    if(res == ESP_OK){
-      res = httpd_resp_send_chunk(req, _STREAM_BOUNDARY, strlen(_STREAM_BOUNDARY));
-    }
-    if(fb){
-      esp_camera_fb_return(fb);
-      fb = NULL;
-      _jpg_buf = NULL;
-    } else if(_jpg_buf){
-      free(_jpg_buf);
-      _jpg_buf = NULL;
-    }
-    if(res != ESP_OK){
-      break;
-    }
-  }
-  return res;
-}
-
-void streamCamera(){
-  httpd_config_t config = HTTPD_DEFAULT_CONFIG();
-  config.server_port = 80;
-  httpd_uri_t index_uri = {
-    .uri       = "/live",
-    .method    = HTTP_GET,
-    .handler   = stream_handler,
-    .user_ctx  = NULL
-  };  
-  
-  if (httpd_start(&stream_httpd, &config) == ESP_OK) {
-    httpd_register_uri_handler(stream_httpd, &index_uri);
-  }
-}
-*/
-
 //Abre a foto salva no SPIFFS do ESP32CAM
 void servidorWeb()
 {
-
   // Route for root / web page
   server.on("/", HTTP_GET, [](AsyncWebServerRequest * request) {
     request->send_P(200, "text/html", index_html);
   });
 
+  //Captura a foto alterando o bool
   server.on("/capture", HTTP_GET, [](AsyncWebServerRequest * request) {
     takeNewPhoto = true;
-    request->send_P(200, "text/plain", "Taking Photo");
+    request->send_P(200, "text/plain", "Foto Capturada!");
   });
 
+  //Captura a foto atraves das funçõeos
+  server.on("/analisaFoto", HTTP_GET, [](AsyncWebServerRequest * request) {
+
+  
+    String resposta = "";
+    int cont = 0;
+    /*
+    
+    //Repitir se a imagem nao conter uma face
+    do{
+      
+      //Se for a primeira iteração do loop, resposta == "". So precisa tirar uma nova foto se a resposta for == 550
+      if(resposta != "")
+      {
+        Serial.println("Tirando uma nova foto");
+        tiraFoto();
+        cont++;
+      }
+
+      resposta = EnvioAnaliseIMGMulter();
+
+    }
+    while(resposta == "550" || cont < 3);
+    */
+
+    resposta = EnvioAnaliseIMGMulter();
+
+    //Ocorreu algum erro na analise da imagem
+    if(resposta != "true" && resposta != "false")
+    {
+      request->send_P(500, "text/plain", resposta.c_str());
+      Serial.println("Erro: " + resposta);  
+    }
+    else{
+      request->send_P(200, "text/plain", resposta.c_str());
+      Serial.println(resposta);
+    }
+
+  });
+
+  //Mostra a foto na memoria SPIFFS do ESPCAM
   server.on("/saved-photo", [](AsyncWebServerRequest * request) {
     request->send(SPIFFS, FILE_PHOTO, "image/jpg", false);
   });
@@ -504,7 +604,7 @@ void servidorWeb()
 
   server.on("/log", HTTP_POST, [](AsyncWebServerRequest *request){
     if (request->hasParam("message")) {
-      AsyncWebParameter* param = request->getParam("message");
+      AsyncWebParameter* param = request->getParam("message");  
       messages += "<li>" + param->value() + "</li>";
     }
     request->send(200, "text/plain", "Message received");
@@ -522,39 +622,10 @@ void servidorWeb()
 void setup() {
 
   Serial.begin(115200);
-
   initCamera();
-
-  //Inicilizando SPIFFS
-  if (!SPIFFS.begin(true)) {
-    Serial.println("An Error has occurred while mounting SPIFFS");
-    ESP.restart();
-  }
-  else {
-    delay(500);
-    Serial.println("SPIFFS mounted successfully");
-  }
-
-  // Inicializa a comunicação serial com o ESP32
-  //SerialESP32.begin(9600, SERIAL_8N1, PORT_RX, PORT_TX); 
-
-  WiFi.begin(ssid, password);
-  Serial.print("Conectando à rede Wi-Fi");
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(1000);
-    Serial.print(".");
-  }
-
-  Serial.println("");
-  Serial.println("Conectado à rede Wi-Fi");
-  Serial.print("Endereço de IP: http://");
-
-  IPAddress ipESP = WiFi.localIP();
-  serverESP = ipESP.toString();
-
-  Serial.println(ipESP);
-
-
+  piscarLED();
+  initSPIFFS();
+  connectWiFi();
   servidorWeb();
 
 }
@@ -563,43 +634,9 @@ void loop() {
 
   if (takeNewPhoto) {
     tiraFoto();
-    enviarFotoJPEG();
-    
     takeNewPhoto = false;
   }
   delay(1);
-
-  String mensagem = "foto";
-
-  // Verifica se há dados disponíveis na porta serial
-  /*
-  if (SerialESP32.available()) 
-  {
-    mensagem = SerialESP32.readStringUntil('\n'); // Lê a string enviada pelo ESP32
-    Serial.println("Mensagem recebida do ESP32: " + mensagem); // Exibe a mensagem no monitor serial
-  }
-  */
-
-  /*
-  //Se o ESP32 mandar o comando a foto é tirada
-  if(mensagem == "foto")
-  {
-
-    //A foto é tirada. É armazenada na memoria do ESP e retornada num buffer
-    uint8_t* foto = fotoJPEG();
-
-    
-    if(foto)
-    {
-      //Realiza o envio da foto para o Node.js para
-      enviarFotoJPEG(foto);
-    }
-    else{
-      Serial.println("Nao há fotos!");
-    }
-    
-  }
-  */
 
   //Ao final de todo loop ele libera o framebuffer da ultima foto tirada
   if(last_photo)

@@ -1,77 +1,33 @@
-#include <Keypad.h>
-#include <Arduino.h>
-#include <WiFi.h>
-#include <HTTPClient.h>
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
+#include <includes.h>
 
-#define RELE_PIN 4
-#define BUZZER_PIN 5
-#define NOTA_BUZZER 528
-#define RECPTOR_PIN 15
-
-// Configurações do WiFi
-const char* ssid = "pco";
-const char* password_wifi = "junior1521";
-
-//Configuração IP ESP32
-IPAddress local_IP(192, 168, 184, 200); // Endereço IP do ESP32
-IPAddress gateway(192, 168, 184, 17);   // Endereço do gateway
-IPAddress subnet(255, 255, 255, 0);  // Máscara de sub-rede
-
-// Configurações do teclado matricial
-const byte ROWS = 4; // Número de linhas do teclado matricial
-const byte COLS = 4; // Número de colunas do teclado matricial
-
-char keys[ROWS][COLS] = { 
-  {'1', '2', '3', 'A'},
-  {'4', '5', '6', 'B'},
-  {'7', '8', '9', 'C'},
-  {'*', '0', '#', 'D'}
-};
-
-byte rowPins[ROWS] = {13, 12, 14, 27}; // Pinos do ESP32 conectados às linhas do teclado matricial
-byte colPins[COLS] = {26, 25, 33, 32}; // Pinos do ESP32 conectados às colunas do teclado matricial
-
-Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS);
-
-//Configuração Display
-#define SCREEN_WIDTH 128 // Largura do display OLED em pixels
-#define SCREEN_HEIGHT 32 // Altura do display OLED em pixels
-#define OLED_RESET -1 // Pin reset do display OLED (ou -1 se não tiver)
-
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
-
-// Array de imagem do emoji de fechadura
-const unsigned char lockIcon[128] PROGMEM = {
-  // Dados da imagem aqui
-  0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xe3, 0xff, 0x00, 0x00, 0xe1, 0xff, 0x00, 
-0x00, 0xc1, 0xff, 0x00, 0x00, 0xc0, 0x03, 0x00, 0x00, 0xc1, 0xff, 0x00, 0x00, 0xc1, 0xff, 0x00, 
-0x00, 0xc1, 0xff, 0x00, 0x00, 0xc1, 0xff, 0x00, 0x00, 0xc1, 0xff, 0x00, 0x00, 0xc1, 0xff, 0x00, 
-0x00, 0xc1, 0xff, 0x00, 0x00, 0xe3, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0xff, 0xff, 0x00
-};
-
-// -------------------------------------------------------------------------------------------------
-
-// Definir as constantes de conexão com o servidor
-const char* serverName = "http://34.151.239.205/?login=";
-
-// Variáveis para armazenar o nome de usuário e a senha
-String login = "123";
-String senha = "12365";
+void startPin()
+{
+  pinMode(RELE_PIN, OUTPUT);
+  pinMode(BUZZER_PIN, OUTPUT);
+  pinMode(RECPTOR_PIN, INPUT);
+  pinMode(MAG_PIN, INPUT_PULLUP);
+}
 
 void connect_wifi()
 {
-  // Conecta-se à rede WiFi
+  
   WiFi.begin(ssid, password_wifi);
 
   while (WiFi.status() != WL_CONNECTED) 
   {
     delay(1000);
-    Serial.println("Conectando-se à rede WiFi...");
+    Serial.print(".");
 
   }
+
+  Serial.println("");
+
+  // Imprime os dados de conexão
+  Serial.println(WiFi.SSID());
+  Serial.print("Endereço IP: http://");
+  Serial.println(WiFi.localIP());
+  Serial.print("Endereço MAC: ");
+  Serial.println(WiFi.macAddress());
 
   Serial.println("Conectado à rede WiFi");
 }
@@ -88,77 +44,107 @@ void ip_esp()
 
 }
 
+/* Temporario */
+void setCursorMeio()
+{
+    display.setCursor(0, (display.height() - 8) / 2); // Define a posição do cursor no meio do display
+
+}
+
 void start_display()
 {
-  if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) 
-  { // Endereço 0x3D para 128x64
-    Serial.println(F("Falha na alocação SSD1306"));
-    for(;;);
-  }
-  delay(500);
-  display.clearDisplay();
-  
-  // CONFIGURAÇÃO TEXTO
-  display.setTextSize(1);
-  display.setFont();
-  display.setTextColor(WHITE);
-
-  display.display();
-}
-
-String getPassword() {
-  
-  String password = "";
-  char key;
-
-  while(password.length() < 5) {
+    if(!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) 
+    { 
+        // Endereço 0x3D para 128x64
+        Serial.println(F("Falha na alocação SSD1306"));
+        for(;;);
+    }
+    delay(500);
+    display.clearDisplay();
     
-    display.setCursor(0, 0);
-    display.println("Registro de Senha");
+    // CONFIGURAÇÃO TEXTO
+    display.setTextSize(1);
+    display.setFont();
+    display.setTextColor(WHITE);
+
+    //Mensagem de boas vindas
+    setCursorMeio();
+    display.println("Fechadura Eletrônica");
     display.display();
 
-    key = keypad.getKey();
+    delay(500);
+    display.setCursor(0, 24);
+    display.println("Bem vindo...");
+    display.display();
 
-    display.setCursor(0, (display.height() - 8) / 2);
+    delay(1500);
 
-    if(key != NO_KEY) {
-      password += key;
-      
-      //Impressão no monitor serial e display OLED
-      Serial.print(key);       
-      display.print(password);
-      display.display();
 
-      delay(200); // aguarda um pouco para a próxima tecla ser pressionada
-    }
-  }
-
-  Serial.println("\nSenha cadastrada com sucesso!");
-
-  display.clearDisplay();
-  display.setCursor(0, (display.height() - 8) / 2);
-  display.println("Senha cadastrada!");
-  display.display();
-
-  delay(1000);
-  
-  return password;
 }
 
-String getLogin() {
+void display_acesso_liberado()
+{
+    display.clearDisplay();
+    setCursorMeio();
+
+    display.println("Acesso liberado!"); // Texto a ser exibido
+    display.display();  
+    
+    delay(3000);
+
+}
+
+void display_acesso_negado()
+{
+    display.clearDisplay();
+  
+    setCursorMeio();
+    display.println("Acesso negado!"); // Texto a ser exibido
+    display.display();  
+    
+    delay(3000);
+}
+
+void display_home()
+{
+    display.clearDisplay();
+
+    display.setCursor(0, 0);
+    display.println("Menu de Selecao");
+
+    display.setCursor(0, 8);
+    display.println("A - Login e Senha");
+    display.println("B - R. Facial");
+    display.println("C - QR Code");
+    display.display();  
+
+    // Exibe o emoji de fechadura
+    //display.drawBitmap(0, (display.height() - 8) / 2, lockIcon, 32, 16, 1);
+    //display.display();
+}
+
+void credenciaisLogin()
+{
 
   String login_f = "";
+  String senha_f = "";
+  
   char key;
 
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println("--- Registro ---");
+  display.display();
+
   while(login_f.length() < 3) {
-    
-    display.setCursor(0, 0);
-    display.println("Registro de Login");
-    display.display();
 
     key = keypad.getKey();
     
-    display.setCursor(0, (display.height() - 8) / 2);
+    display.setCursor(0, 8);
+    display.print("Login = ");
+    display.display();
+
+    Serial.print("Login = ");
 
     if(key != NO_KEY) {
       login_f += key;
@@ -167,120 +153,260 @@ String getLogin() {
       display.print(login_f);
       display.display();
 
-      delay(200); // aguarda um pouco para a próxima tecla ser pressionada
+      delay(100); // aguarda um pouco para a próxima tecla ser pressionada
     }
   }
 
-  Serial.println("\nLogin cadastrado com sucesso!");
+  while(senha_f.length() < 5) {
+
+    key = keypad.getKey();
+    
+    display.setCursor(0, 16);
+    display.print("Senha = ");
+    display.display();
+
+    Serial.println("Senha = ");
+
+    if(key != NO_KEY) {
+      senha_f += key;
+      
+      Serial.print(key);  
+      display.print(senha_f);
+      display.display();
+
+      delay(100); // aguarda um pouco para a próxima tecla ser pressionada
+    }
+  }
+
+  login = login_f;
+  senha = senha_f;
+
+  delay(500);
+
+  //Cadastro Finalizado
+  Serial.println("\nCadastro finalizado com sucesso!");
   
   display.clearDisplay();
   display.setCursor(0, (display.height() - 8) / 2);
-  display.println("Senha cadastrada!");
+  display.println("Credenciais cadastradas!");
   display.display();
   delay(1000);
 
-  return login_f;
 }
 
-void display_acesso_liberado()
+//Faz a checagem se o login existe no Banco de Dados
+bool checarLoginDB()
 {
-  display.clearDisplay();
- 
-  //display.setCursor(0,20); // Posição do cursor para o texto
-  display.setCursor(0, (display.height() - 8) / 2); // Define a posição do cursor no meio do display
+  Serial.println("--- Consulta de Acesso ---");
 
-  display.println("Acesso liberado!"); // Texto a ser exibido
-  display.display();  
-  
-  delay(3000);
+  // Crie um objeto HTTPClient
+  HTTPClient client;
+  client.begin(url_analiseLogin);
+  client.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  String postData = "login=" + login + "&senha=" + senha;
+  int httpResponseCode = client.POST(postData);
 
-  display.clearDisplay();
-  display.display();
+  if (httpResponseCode == 200) 
+  {
+    String response = client.getString();
+
+    if (response == "true") {
+      client.end();
+      return true;
+    } 
+
+  } 
+
+  else 
+  {
+    Serial.println("checarLoginDB | Erro na conexão com o servidor!");
+    Serial.println("HttpCode = " + httpResponseCode);
+  }
+
+  return false;
+  client.end();
+    
 }
 
-void display_acesso_negado()
+bool checarFaceDB()
 {
-  display.clearDisplay();
+  // Conectar ao servidor
+  WiFiClient client;
   
-  //display.setCursor(0,20); // Posição do cursor para o texto
-  display.setCursor(0, (display.height() - 8) / 2); // Define a posição do cursor no meio do display
+  if (!client.connect(ip_espCAM, 80)) 
+  {
+    Serial.println("Falha na conexão com o servidor");
+    return false;
+  }
 
-  display.println("Acesso negado!"); // Texto a ser exibido
-  display.display();  
-  
-  delay(3000);
+  // Enviar a requisição GET
+  client.print("GET /analisaFoto HTTP/1.1\r\n");
+  //client.print("GET " + rotaFace + " HTTP/1.1\r\n");
+  client.print("Host: 192.168.1.11\r\n");
+  client.print("Connection: close\r\n\r\n");
 
-  display.clearDisplay();
-  display.display();
+  // Aguardar a resposta do servidor
+  while (client.connected() && !client.available()) {
+    delay(1);
+  }
+
+  // Ler a resposta do servidor
+  String resposta = "";
+
+  while (client.available()) {
+    resposta = client.readStringUntil('\n');
+    Serial.println("Resposta completa do servidor:");
+    Serial.println(client.readString());
+  }
+
+  // Analisar a resposta do servidor
+  if (resposta.startsWith("HTTP/1.1 200 OK")) 
+  {
+    // Sucesso na requisição
+    if (resposta.endsWith("true")) 
+    {
+      client.stop();
+
+      // Face reconhecida
+      Serial.println("Face reconhecida!");
+      return true;
+    } 
+    else 
+    {
+      // Face não reconhecida
+      Serial.println("Face não reconhecida!");
+    }
+  } 
+  else 
+  {
+    // Outro problema
+    Serial.println("Outro problema");
+    Serial.println("Erro: " + client.readStringUntil('\n'));
+  }
+
+  // Fechar a conexão
+  client.stop();
+  return false;
 }
 
-void display_home()
+//Envia uma instrução para o ESPCAM tirar a foto
+void tirarFoto()
 {
-  display.clearDisplay();
+  //GET - WebServer do ESPCAM
+  Serial.println("URL = " + url_tirarFoto);
+  
+  HTTPClient http;
+  http.begin(url_tirarFoto);
+  int httpCode = http.GET();
 
-  //display.setCursor(0,20); // Posição do cursor para o texto
-  display.setCursor(0, (display.height() - 8) / 2); // Define a posição do cursor no meio do display
+  if (httpCode == HTTP_CODE_OK) {
+    Serial.println("Requisição enviada com sucesso. Foto tirada!");
+  } else {
+    Serial.printf("Erro ao enviar a requisição: %d\n", httpCode);
+  }
 
-  display.println("Fechadura Eletronica"); // Texto a ser exibido
-  display.display();  
-
-  // Exibe o emoji de fechadura
-  //display.drawBitmap(0, (display.height() - 8) / 2, lockIcon, 32, 16, 1);
-  //display.display();
-
+  http.end();
 }
 
 int contagem_pessoas()
 {
   int leitura = digitalRead(RECPTOR_PIN);
+
+  //LEITURA = 1 -> LASER NO RECEPTOR | LEITURA == 0 -> LASER NAO TA CHEGANDO NO RECEPTOR (PASSANDO GENTE)
+
   if(leitura == 1)
   {
+    return 0;
+  }
+  else{
     return 1;
   }
-  else
-    return 0;
 }
 
 void abrir_fechadura()
 {
 
-  //Futuramente, adcionar -> Quando o sensor eletromagnético saber que a porta fechou, desliga ele
+  //SENSOR MAGNÉTICO: 0 - FECHADO(SENSOR SE ENCONSTANDO) | 1 - ABERTO
   
   int tempo_atual = millis();
   int pessoas = 0;
   
-  tone(BUZZER_PIN, NOTA_BUZZER, 500); 
-
-  //Acionamento do Rele e Buzzer (por 5segundos)
-
-  while(tempo_atual + 5000 > millis()){
-    digitalWrite(RELE_PIN, HIGH); 
-    pessoas += contagem_pessoas();
-  }
+  //tone(BUZZER_PIN, NOTA_BUZZER, 500); 
   
+  //ABRIR RELE
+  digitalWrite(RELE_PIN, HIGH);
 
-  //Rele desativado
+  //flags para contagem de pessoas
+  bool saida = false;
+  bool estado = false;
+  bool estado_porta = digitalRead(MAG_PIN);
+
+  /*
+  while(tempo_atual + 5000 > millis())
+  {
+
+    digitalWrite(RELE_PIN, HIGH); 
+    
+    saida = contagem_pessoas();
+
+    if(saida == true && estado == false)
+    {
+      estado = true;
+      pessoas++;
+    }
+    else if(saida == false && estado==true)
+    {
+      estado = false;
+    }
+
+    bool mag = digitalRead(MAG_PIN);
+
+    Serial.println(mag);
+
+  }*/
+
+  //ENQUANTO A PORTA NAO É ABERTA  
+  while(estado_porta == false)
+  {
+    estado_porta = digitalRead(MAG_PIN);
+  }
+
+  //MODO A PARTIR DO SENSOR MAGNETICO
+  while(estado_porta == true)
+  {   
+    saida = contagem_pessoas();
+
+    if(saida == true && estado == false)
+    {
+      estado = true;
+      pessoas++;
+    }
+    else if(saida == false && estado == true)
+    {
+      estado = false;
+    }
+
+    estado_porta = digitalRead(MAG_PIN);
+  }
+
+  //Quando a porta fecha -> Rele desativado
+  delay(500);
   digitalWrite(RELE_PIN, LOW);
 
-
   //Envio da quantidade de pessooas ao dashboard web
+  Serial.println(pessoas + "pessoas entraram no ambiente!");
+  
 
 }
 
-
 void setup() {
   
-  Serial.begin(9600);
+  Serial.begin(115200);
+  startPin();
+  start_display();
 
   connect_wifi();
-  
-  ip_esp();
-
-  start_display();
-  
-  pinMode(RELE_PIN, OUTPUT);
-  pinMode(BUZZER_PIN, OUTPUT);
-  pinMode(RECPTOR_PIN, INPUT);
+  //ip_esp();
 
 
 }
@@ -291,45 +417,63 @@ void loop()
 
   char key = keypad.getKey();
 
-  //Primeira tecla pressionada, se for diferente dessas, ele vai registrar o login
   if (key == 'A') {
-    Serial.println("--- Registro de Login ---");
+    Serial.println("--- Login e Senha ---");
 
-    display.clearDisplay();
+    //Registrando o login e senha
+    credenciaisLogin();
 
-    login = getLogin();
-    Serial.println("\n");
+    //Manda para a base de dados
+    if(checarLoginDB())
+    {
+      Serial.println("Acesso Liberado!");
+      display_acesso_liberado();
+      //abrir_fechadura();
+    }
+
+    else
+    {
+      Serial.println("Acesso Negado!");
+      display_acesso_negado();
+    }
+
   }
 
-  if (key == 'B') {
-    Serial.println("--- Registro de Senha ---");
-    
-    //Para poder aparecer a senha na tela oled
+  //Reconhecimento Facial
+  if (key == 'B') 
+  {
+    Serial.println("--- Reconhecimento Facial ---");
+
     display.clearDisplay();
+    display.setCursor(0,0);
+    display.println("--- R. facial ---");
+    display.display();
+
+    //Mandar ESPCAM tirar a foto
+    tirarFoto();
+
+    //Mando o servidor analisar a foto
+    if(checarFaceDB())
+    {
+      Serial.println("Acesso Liberado!!");
+      display_acesso_liberado();
+      //abrir_fechadura();
+
+    }
+    else
+    {
+      Serial.println("Acesso Negado!");
+      display_acesso_negado();
+    }
     
-    senha = getPassword();
     
-    Serial.println("\n");
   }
 
+  //Qr Code
   if(key == 'C')
   {
-    Serial.println("--- Credenciais atuais ---");
-
-    Serial.println("Login = " + login);
-    Serial.println("Senha = " + senha);
-    Serial.println("\n");
-
-    //Impressão display
-
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("Credenciais atuais");
-    display.setCursor(0, 16);
-    display.println("Login = " + login);
-    display.println("Senha = " + senha);
-    display.display();
-    delay(2000);
+    Serial.println("ABRINDO FECHADURA...");
+    abrir_fechadura();
 
   }
 
@@ -342,73 +486,20 @@ void loop()
     display.setCursor(0, 0);
     display.println("Limpando Credenciais...");
     display.display();
-    delay(2000);
+    delay(1000);
 
     login = "";
     senha = "";
   }
 
-  //Se precionar essa tecla ele realiza a consulta no banco de dados atraves de uma requisao html
   if (key == '*') {
-    Serial.println("--- Consulta de Acesso ---");
-
-    String serverPath = serverName;
-
-    if(login != "" && senha != ""){
-
-      serverPath += login;
-
-      Serial.println("url: " + serverPath);
-
-      HTTPClient client;
-
-      if (client.begin(serverPath)) 
-      {
-        //Verificar se a requisição foi bem-sucedida
-        int httpCode = client.GET();
-        Serial.println(httpCode);
-        if (httpCode == 200) 
-        {
-          String resposta = client.getString();
-          
-          if (resposta == senha) {
-            Serial.println("Acesso liberado!");
-
-            display_acesso_liberado();
-            abrir_fechadura();
-          } 
-          
-          else {
-            Serial.println("Senha incorreta!");
-            display_acesso_negado();
-          }
-
-        } 
-
-        else 
-        {
-          Serial.println("Erro na conexão com o servidor!");
-        }
-
-        client.end();
-      }
-
-      else {
-        Serial.println("Não foi possível conectar com o servidor!");
-      }
-    }
-    else
-    {
-      Serial.println("Não há informações para o acesso");
-      //abrir_fechadura();
-
-      display.clearDisplay();
-      display.setCursor(0, 0);
-      display.println("Nao ha informaçoes para o acesso!"); // Texto a ser exibido
-      display.display(); 
-      delay(3000);
-
-    }
+    tirarFoto();
+  }
+  
+  if(key == '#')
+  {
+    Serial.println("Abrindo fechadura...");
+    abrir_fechadura();
   }
   
 }
