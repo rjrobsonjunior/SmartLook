@@ -1,4 +1,4 @@
-.pio/build/esp32cam/src/main.cpp.o: src/main.cpp \
+.pio/build/esp32cam/src/main.cpp.o: src/main.cpp src/includes.h \
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/cores/esp32/Arduino.h \
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp_arduino_version.h \
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/freertos/include/freertos/FreeRTOS.h \
@@ -129,7 +129,6 @@
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/spi_flash/include/esp_spi_flash.h \
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/spi_flash/include/esp_spi_flash_counters.h \
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_hw_support/include/soc/esp32/spiram.h \
- C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/cores/esp32/HardwareSerial.h \
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFi.h \
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/cores/esp32/Print.h \
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/cores/esp32/IPv6Address.h \
@@ -241,6 +240,7 @@
  lib/ESPAsyncWebServer/src/AsyncWebSynchronization.h \
  lib/ESPAsyncWebServer/src/AsyncEventSource.h \
  lib/ESPAsyncWebServer/src/AsyncWebSocket.h \
+ C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp_system/include/esp_task_wdt.h \
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/esp32-camera/driver/include/esp_camera.h \
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/driver/include/driver/ledc.h \
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/hal/include/hal/ledc_types.h \
@@ -260,4 +260,5 @@
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/soc/esp32/include/soc/sens_struct.h \
  C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/hal/include/hal/rtc_io_types.h \
  lib/ESPAsyncWebServer/src/StringArray.h \
- C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/fb_gfx/include/fb_gfx.h
+ C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32/include/fb_gfx/include/fb_gfx.h \
+ C:/Users/Adryan/.platformio/packages/framework-arduinoespressif32/cores/esp32/HardwareSerial.h
