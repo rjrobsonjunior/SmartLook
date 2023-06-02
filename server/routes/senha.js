@@ -8,7 +8,7 @@ router.post('/login', (req, res) => {
     const login = req.body.login;
     const senha1 = req.body.senha;
 
-    const query = `SELECT * FROM usuarios WHERE login = '${login}'`;
+    const query = `SELECT id, nome, login, senha FROM usuarios WHERE login = '${login}'`;
   
     db.query(query, (err, result) => {
       if (err) throw err;
@@ -20,7 +20,8 @@ router.post('/login', (req, res) => {
         {
           res.send(`true`);
           const usuario = result[0];
-          res.redirect(`/presets/${usuario.id}/${usuario.nome}/${usuario.login}`);
+          console.log(`/insert/${usuario.id}/${usuario.nome}/${usuario.login} `);
+          res.redirect(`/insert/${usuario.id}/${usuario.nome}/${usuario.login}`);
         }
         else
         {
