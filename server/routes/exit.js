@@ -17,7 +17,8 @@ router.post('/exit', (req, res) => {
     if (result.length > 0) {
       const id = result[0].id;
       res.redirect(`/delete/${id}`);
-    } else {
+    } 
+    else {
       res.send('Usuário não encontrado');
     }
     

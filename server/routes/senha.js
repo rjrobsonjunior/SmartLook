@@ -20,8 +20,20 @@ router.post('/login', (req, res) => {
         {
           res.send(`true`);
           const usuario = result[0];
-          console.log(`/insert/${usuario.id}/${usuario.nome}/${usuario.login} `);
-          res.redirect(`/insert/${usuario.id}/${usuario.nome}/${usuario.login}`);
+          //console.log(`/insert/${usuario.id}/${usuario.nome}/${usuario.login} `);
+          //res.redirect(`/insert/${usuario.id}/${usuario.nome}/${usuario.login}`);
+          
+          const sql = 'INSERT INTO presents (id, nome, login) VALUES (?, ?, ?)';
+          const values = [usuario.id, usuario.nome, usuario.login];
+        
+          db.query(sql, values, (err, result) => {
+            if (err) {
+              console.error('Erro ao inserir os dados:', err);
+            }
+            else{
+              console.log('Dados inseridos com sucesso');
+            }
+          });
         }
         else
         {

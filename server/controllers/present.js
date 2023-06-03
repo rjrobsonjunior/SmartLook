@@ -11,27 +11,18 @@ const getUsers = (_, res) => {
 };
 
 const addUser = (req, res) => {  
-
-  const q = "INSERT INTO presents( `id`, `nome`, `login`) VALUES(?)";
-  const values = [
-    req.body.id,
-    req.body.nome,
-    req.body.login,
-  ];
   
-  console.log(q);
-
-  db.query(q, [values], (err) => {
+  const { id, nome, login } = req.body;
+  const sql = 'INSERT INTO presents (id, nome, login) VALUES (?, ?, ?)';
+  const values = [id, nome, login];
+        
+  db.query(sql, values, (err, result) => {
     if (err) {
-      if (err.code !== 'ER_SIGNAL_EXCEPTION') {
-        throw err; // Rethrow non-MySQL errors
-      }
-      // Handle MySQL errors
-      // ...
-      return;
+      console.error('Erro ao inserir os dados:', err);
     }
-
-    return res.status(200).json("Usuário criado com sucesso.");
+    else{
+      console.log('Dados inseridos com sucesso');
+    }
   });
 };
 

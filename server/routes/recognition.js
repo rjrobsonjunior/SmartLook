@@ -154,6 +154,19 @@ router.post('/recognition', upload, async (req, res) => {
       else
       {
         res.status(200).send(true);
+        
+        const usuario= results[0];
+        const sql = 'INSERT INTO presents (id, nome, login) VALUES (?, ?, ?)';
+        const values = [usuario.id, usuario.nome, usuario.login];
+        
+          db.query(sql, values, (err, result) => {
+            if (err) {
+              console.error('Erro ao inserir os dados:', err);
+            }
+            else{
+              console.log('Dados inseridos com sucesso');
+            }
+          });
       }
 
       

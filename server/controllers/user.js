@@ -11,7 +11,7 @@ const getUsers = (_, res) => {
 };
 
 const addUser = (req, res) => {
-  const q = "INSERT INTO usuarios(`nome`, `login`, `senha`, `recognition1`) VALUES(?)";
+  const q =  "INSERT INTO usuarios(`nome`, `login`, `senha`, `recognition1`) VALUES(?)";
 
   const values = [
     req.body.nome,
