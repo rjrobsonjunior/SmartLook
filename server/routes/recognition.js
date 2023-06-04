@@ -5,12 +5,16 @@ const bodyParser = require('body-parser');
 const faceapi = require('face-api.js');
 const { db } = require('../db.js');
 
+//CANVAS
 const canvas = require("canvas");
 const { Canvas, Image, ImageData } = canvas;
 faceapi.env.monkeyPatch({ Canvas, Image, ImageData });
+
+//MULTER
 const multer = require('multer');
 const upload = multer().single('imagem'); // 'image' é o nome do campo que contém a imagem na requisição POST
 
+//EXPRESS
 const router = express.Router();
 router.use(bodyParser.json());
 router.use(bodyParser.urlencoded({ extended: true }));
@@ -18,7 +22,7 @@ router.use(express.static('public'));
 router.use(express.urlencoded({ extended: true }));
 router.use(express.json({ limit: '50mb' }));
 
-const modelsPath = '/home/rj/Documentos/OF1/server/routes/models';
+const modelsPath = './routes/models';
 const caminhoDestino = './routes/uploads/imagem.jpg';
 
 
@@ -30,7 +34,9 @@ Promise.all([
 ]).then(() => console.log('Models loaded!'));
 
 router.post('/recognition', upload, async (req, res) => {
+
   console.time('Tempo de execução');
+
   try {
 
     /* IMAGEM RECEBIDA VIA POST */
@@ -91,6 +97,7 @@ router.post('/recognition', upload, async (req, res) => {
 
       // Extrai as informações de cada linha do resultado da consulta
       for (let i = 0; i < results.length; i++) {
+        
 
         // Extrai as características faciais em formato JSON de cada linha
         let json = JSON.parse(results[i].recognition1);
@@ -108,8 +115,6 @@ router.post('/recognition', upload, async (req, res) => {
         savedDescriptors.push(labeledDescriptors);
       }
       
-
-
 
       /* DEBUG */
       if (savedDescriptors.length === 0) {
@@ -146,7 +151,7 @@ router.post('/recognition', upload, async (req, res) => {
       const result = bestMatch.toString();
       
       
-      console.log("result:"+ result)
+      console.log("result:" + result);
 
       if(result.includes('unknown'))
       {
@@ -156,9 +161,14 @@ router.post('/recognition', upload, async (req, res) => {
       {
         
         res.status(200).send(true);
-        console.timeEnd('Tempo de execução');
-        const nome = result.substring(0, result.indexOf(' (')).trim();
 
+        //Tempo de execução
+        console.timeEnd('Tempo de execução');
+
+        //Sepera a string da resposta (NOME (0.5))
+        const nome = result.substring(0, result.indexOf(' (')).trim();
+        
+        //Realiza uma nova consulta para procurar os dados do usuario e insere eles na tabela presents
         const query1 = `SELECT id, nome, login FROM usuarios WHERE nome = '${nome}'`;
         console.log(query1);
         db.query(query1, (err, result1) => {
@@ -181,11 +191,8 @@ router.post('/recognition', upload, async (req, res) => {
             });
           }
           
-          });
-          
-          
+        });
       }
-  
     });
 
   } catch (error) {
