@@ -1,6 +1,6 @@
 const express = require('express');
 const path = require('path');
-
+const fs = require('fs');
 const bodyParser = require('body-parser');
 const faceapi = require('face-api.js');
 const { db } = require('../db.js');
@@ -19,7 +19,7 @@ router.use(express.urlencoded({ extended: true }));
 router.use(express.json({ limit: '50mb' }));
 
 const modelsPath = '/home/rj/Documentos/OF1/server/routes/models';
-const caminhoDestino = './uploads/imagem.jpg';
+const caminhoDestino = './routes/uploads/imagem.jpg';
 
 
 // carrega o modelo da face-api.js
@@ -85,8 +85,8 @@ router.post('/recognition', upload, async (req, res) => {
 
     db.query(query, async function (error, results, fields) {
       if (error) throw error;
-      console.log("Entrei no connect");
 
+      console.time('Tempo de execução');
       let savedDescriptors = [];
 
       // Extrai as informações de cada linha do resultado da consulta
@@ -107,6 +107,8 @@ router.post('/recognition', upload, async (req, res) => {
         // Adiciona os descritores do usuário ao array de descritores
         savedDescriptors.push(labeledDescriptors);
       }
+      console.timeEnd('Tempo de execução');
+
 
 
       /* DEBUG */
@@ -116,7 +118,7 @@ router.post('/recognition', upload, async (req, res) => {
       }
 
       if (queryDescriptors.length === 0) {
-        console.log('Não há descritores na imagem para comparar');
+        console.log('Não há descritores na imagem para comparar');  
         res.status(500).send("Não há descritores na imagem para comparar");
         
       }
@@ -142,10 +144,9 @@ router.post('/recognition', upload, async (req, res) => {
       const faceMatcher = new faceapi.FaceMatcher(savedDescriptors);
       const bestMatch = faceMatcher.findBestMatch(queryDescriptors);
       const result = bestMatch.toString() 
-
+      //console.log(result);
       // Identifica a pessoa na imagem
-      console.log("result:")
-      console.log(result);
+      console.log("result:"+ result)
 
       if(result.includes('unknown'))
       {
@@ -155,21 +156,33 @@ router.post('/recognition', upload, async (req, res) => {
       {
         res.status(200).send(true);
         
-        const usuario= results[0];
-        const sql = 'INSERT INTO presents (id, nome, login) VALUES (?, ?, ?)';
-        const values = [usuario.id, usuario.nome, usuario.login];
-        
-          db.query(sql, values, (err, result) => {
-            if (err) {
-              console.error('Erro ao inserir os dados:', err);
-            }
-            else{
-              console.log('Dados inseridos com sucesso');
-            }
-          });
-      }
-
+        // teoricamente pegaria o nome do usuario liberado
+        const nome = result.nome;
+        console.log(nome);
+        const query1 = `SELECT id, nome, login FROM usuarios WHERE nome = '${nome}'`;
       
+        db.query(query1, (err, result1) => {
+          if (err) throw err;
+          else {
+            const usuario = result1[0];
+            console.log(usuario);
+            const sql = 'INSERT INTO presents (id, nome, login) VALUES (?, ?, ?)';
+            const values = [usuario.id, usuario.nome, usuario.login];
+          
+            db.query(sql, values, (err) => {
+              if (err) {
+                console.error('Erro ao inserir os dados:', err);
+              }
+              else{
+                console.log('Dados inseridos com sucesso');
+              }
+            });
+          }
+          
+          });
+
+      }
+  
     });
 
   } catch (error) {

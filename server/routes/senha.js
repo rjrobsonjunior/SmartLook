@@ -26,7 +26,7 @@ router.post('/login', (req, res) => {
           const sql = 'INSERT INTO presents (id, nome, login) VALUES (?, ?, ?)';
           const values = [usuario.id, usuario.nome, usuario.login];
         
-          db.query(sql, values, (err, result) => {
+          db.query(sql, values, (err) => {
             if (err) {
               console.error('Erro ao inserir os dados:', err);
             }
