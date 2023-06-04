@@ -37,7 +37,7 @@ const Label = styled.label`
 `;
 
 const Button = styled.button`
-    padding: 10px;
+    padding: 10px 10px;
     cursor: pointer;
     border-radius: 5px;
     border: none;
@@ -126,6 +126,13 @@ const Form = ({ getUsers, onEdit, setOnEdit, faceFeatures }) => {
             .catch(({ data }) => toast.error(data));
         }
 
+        const login = user.login.value;
+        const senha = user.senha.value;
+
+        const data = {login, senha};
+        const jsonUserData = JSON.stringify(data);
+        setQrCodeData(jsonUserData);
+
         user.nome.value = " ";
         user.login.value = " ";
         user.senha.value = " ";
@@ -138,8 +145,7 @@ const Form = ({ getUsers, onEdit, setOnEdit, faceFeatures }) => {
         setOnEdit(null);
         getUsers();
 
-        const data = `Login: ${user.login.value}\nSenha: ${user.senha.value}`;
-        setQrCodeData(data);
+        
     }; 
     
 
