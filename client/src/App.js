@@ -25,7 +25,9 @@ const Container = styled.div`
   gap: 10px;
 `;
 
-const Title = styled.h2``;
+const Title = styled.h1``;
+
+const Title1 = styled.h2``;
 
 function App() {
 
@@ -67,9 +69,12 @@ function App() {
     <>
       <Container>
         <Title>USUARIOS</Title>
+        <Title1>REGISTER</Title1>
         <WebcamCapture setFaceFeatures={setFaceFeatures} />
         <Form onEdit={onEdit} setOnEdit={setOnEdit} getUsers={getUsers} faceDescription={faceDescription} setFaceDescription={setFaceDescription} faceFeatures={faceFeatures} />
+        <Title1>REGISTERED</Title1>
         <Grid users={users} setUsers={setUsers} setOnEdit={setOnEdit} />
+        <Title1> USERS CURRENT</Title1>
         <Dashboard presents={presents}/>
       </Container>
       <ToastContainer theme="dark" autoClose={300} position={toast.POSITION.BUTTON_LEFT} />

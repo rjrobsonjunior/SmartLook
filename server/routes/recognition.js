@@ -86,7 +86,7 @@ router.post('/recognition', upload, async (req, res) => {
     db.query(query, async function (error, results, fields) {
       if (error) throw error;
 
-      console.time('Tempo de execução');
+      
       let savedDescriptors = [];
 
       // Extrai as informações de cada linha do resultado da consulta
@@ -107,7 +107,7 @@ router.post('/recognition', upload, async (req, res) => {
         // Adiciona os descritores do usuário ao array de descritores
         savedDescriptors.push(labeledDescriptors);
       }
-      console.timeEnd('Tempo de execução');
+      
 
 
 
@@ -139,13 +139,13 @@ router.post('/recognition', upload, async (req, res) => {
         console.log('Erro: nem todos os descritores faciais têm o mesmo tamanho');
         res.status(500).send("As dimensões dos descritores não são iguais");
       } 
-
+      console.time('Tempo de execução');
       // Compara as características faciais da imagem com as características faciais do banco de dados
       const faceMatcher = new faceapi.FaceMatcher(savedDescriptors);
       const bestMatch = faceMatcher.findBestMatch(queryDescriptors);
-      const result = bestMatch.toString() 
-      //console.log(result);
-      // Identifica a pessoa na imagem
+      const result = bestMatch.toString();
+      console.timeEnd('Tempo de execução');
+      
       console.log("result:"+ result)
 
       if(result.includes('unknown'))
@@ -155,14 +155,17 @@ router.post('/recognition', upload, async (req, res) => {
       else
       {
         res.status(200).send(true);
-        
-        // teoricamente pegaria o nome do usuario liberado
-        const nome = result.nome;
-        console.log(nome);
+
+        const nome = result.substring(0, result.indexOf(' (')).trim();
+
+         // "Nome da Pessoa"
+
         const query1 = `SELECT id, nome, login FROM usuarios WHERE nome = '${nome}'`;
-      
+        console.log(query1);
         db.query(query1, (err, result1) => {
-          if (err) throw err;
+          if (err) {
+            console.error('Erro ao inserir os dados:', err);
+          }
           else {
             const usuario = result1[0];
             console.log(usuario);
