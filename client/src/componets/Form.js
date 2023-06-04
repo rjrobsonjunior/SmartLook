@@ -1,7 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState} from "react";
 import styled from "styled-components";
 import axios from "axios";
 import { toast } from "react-toastify";
+import QRCode from "qrcode.react";
 
 const FormContainer = styled.form`
     gap: 10px;
@@ -46,9 +47,19 @@ const Button = styled.button`
     font-size:16px;
 `;
 
+const QRcode = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    aling-itens:center;
+    width: 100%;
+    
+`;
+
 const Form = ({ getUsers, onEdit, setOnEdit, faceFeatures }) => {
 
     const ref = useRef(null);
+    const [qrCodeData, setQrCodeData] = useState("");
 
     useEffect(() => {
         if (onEdit) {
@@ -126,7 +137,25 @@ const Form = ({ getUsers, onEdit, setOnEdit, faceFeatures }) => {
 
         setOnEdit(null);
         getUsers();
-    };   
+
+        const data = `Login: ${user.login.value}\nSenha: ${user.senha.value}`;
+        setQrCodeData(data);
+    }; 
+    
+
+    const handleDownloadClick = () => {
+        const canvas = document.querySelector("canvas");
+        const dataURL = canvas.toDataURL("image/png");
+        const link = document.createElement("a");
+        link.href = dataURL;
+        link.download = "qrcode.png";
+        link.click();
+        handleLimparClick();
+    };
+
+    const handleLimparClick = () => {
+        setQrCodeData(null);
+      };
 
     return(
         <FormContainer ref={ref} onSubmit={handleSubmit}>
@@ -148,6 +177,12 @@ const Form = ({ getUsers, onEdit, setOnEdit, faceFeatures }) => {
             </InputArea>
             
             <Button type="submit">SALVAR</Button>
+            {qrCodeData && (
+                <QRcode>
+                    <QRCode value={qrCodeData} size={256} />
+                    <Button onClick={handleDownloadClick}>Salvar QR Code</Button>
+                </QRcode>
+            )}
         </FormContainer>
     )
 };
