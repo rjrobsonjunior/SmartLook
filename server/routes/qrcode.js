@@ -32,16 +32,19 @@ async function processQRCode(imagePath) {
 const router = express.Router();
 
 router.post('/qrcode', upload.single('qrcode'), async (req, res) => {
+  
   if(!req.file){
     return res.status(400).send("QRCode null");
   }
+
   const qrCodeData = await processQRCode(req.file.path);
+
   if (!qrCodeData) {
     return res.status(400).send('QRCode data null');
   }
+
   console.log(qrCodeData);
   const parsedData = JSON.parse(qrCodeData);
-
 
   const login = parsedData.login;
   const senha1 = parsedData.senha;
