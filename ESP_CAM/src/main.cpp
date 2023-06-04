@@ -2,11 +2,8 @@
 
 //Variavel de controle
 boolean takeNewPhoto = false;
-
 //Variavel que armazena sempre a ultima foto
 camera_fb_t* last_photo = NULL;
-
-WiFiClient client;
 WiFiClientSecure cliente;
 
 String messages = "";
@@ -91,7 +88,6 @@ void Aprint(String mensagem)
 
   //Requisição POST para imprimir na pagina web
   HTTPClient req;
-  //String url = serverESP + ":80/log";
   String url = "http://192.168.1.19/log";
   mensagem = "message="+mensagem;
   req.begin(url);
@@ -398,7 +394,6 @@ String EnvioAnaliseIMGMulter()
     client.print(request);
 
     int statusCode = 0;
-    String statusCode2 = "";
 
     // Aguarde a resposta do servidor
     while (client.connected()) {
@@ -449,6 +444,123 @@ String EnvioAnaliseIMGMulter()
     {
       // Lidar com a falha na comunicação
       Serial.println("Rosto nao encontrado na imagem!");
+      resposta_servidor = "550";
+    }
+    else
+    {
+      Serial.println("REQUISIÇÃO | Falha na requisição POST!");
+    }
+
+    //Fecha o arquivo
+    file.close();
+
+    free(buffer);
+
+    Serial.println("REQUISIÇÃO | Resposta = " + resposta_servidor);
+  }
+
+  return resposta_servidor;
+}
+
+//(MULTER) Envia a foto para a aplicação node.js que ja compara para ver se existe no banco de dados
+String EnvioAnaliseQRCODEMulter()
+{
+  String resposta_servidor = "";
+
+  // Abre o arquivo de imagem salvo no SPIFFS
+  File file = SPIFFS.open(FILE_PHOTO, FILE_READ);
+  
+  if (!file) {
+    Serial.println("Falha ao abrir o arquivo de imagem");
+    resposta_servidor = "Falha ao abrir o arquivo de imagem";
+  }
+
+  else{  
+    // Lê o conteúdo do arquivo e armazena em um buffer
+    size_t size = file.size();
+    uint8_t* buffer = (uint8_t*) malloc(size);
+    file.read(buffer, size);
+
+    WiFiClient client;
+    if (!client.connect(serverIP, 8800)) {
+      Serial.println("Falha ao conectar ao servidor");
+      resposta_servidor = "Falha ao conectar ao servidor";
+      return resposta_servidor;
+    }
+
+    // Gerar um valor de boundary único | Valor serve para identificar o começo e final da requisição
+    String boundary = "--------------------------" + String(millis());
+
+    // Criação do corpo da requisição
+    String requestBody = "--" + boundary + "\r\n";
+    requestBody += "Content-Disposition: form-data; name=\"imagem\"; filename=\"imagem.jpg\"\r\n";
+    requestBody += "Content-Type: image/jpeg\r\n";
+    requestBody += "\r\n";
+    requestBody += String((char*)buffer, size) + "\r\n";
+    requestBody += "--" + boundary + "--\r\n";
+
+    // Construir a requisição HTTP
+    String request = "POST /qrCode HTTP/1.1\r\n";
+    request += "Host: " + String(serverIP) + "\r\n";
+    request += "Content-Type: multipart/form-data; boundary=" + boundary + "\r\n";
+    request += "Content-Length: " + String(requestBody.length()) + "\r\n";
+    request += "\r\n";
+    request += requestBody;
+
+    // Envie a requisição HTTP
+    client.print(request);
+
+    int statusCode = 0;
+
+    // Aguarde a resposta do servidor
+    while (client.connected()) {
+
+      if (client.available()) {
+
+        // Leia e processe a resposta do servidor
+        String response = client.readString();
+        Serial.println("\nREQUISIÇÃO | Codigo completo da resposta da requisição:\n");
+        Serial.println(response);
+
+        // Extrair o código de resposta
+        int statusCodeStart = response.indexOf(' ') + 1;
+        int statusCodeEnd = response.indexOf(' ', statusCodeStart);
+        String statusCodeString = response.substring(statusCodeStart, statusCodeEnd);
+        statusCode = atoi(statusCodeString.c_str());
+
+        // Extrair a última linha da resposta
+        int lastNewlinePos = response.lastIndexOf('\n');
+        String lastLine = response.substring(lastNewlinePos + 1);
+
+        resposta_servidor = lastLine;
+        break;
+      }
+
+      esp_task_wdt_reset();
+
+    }
+
+    Serial.println("-----------------------------------------");
+    Serial.print("Codigo da requisição = ");
+    Serial.println(statusCode);
+    Serial.println("Resposta da ultima linha = " + resposta_servidor);
+    Serial.println("-----------------------------------------");
+
+    // Feche a conexão
+    client.stop();
+
+    // Verifique a resposta
+    if (statusCode == 200) {
+
+      // Processar a resposta do servidor
+      Serial.println();
+      Serial.println("Analise realizada com sucesso!");
+      Serial.println("Resposta do servidor: " + resposta_servidor);
+    }
+    else if(statusCode == 550)
+    {
+      // Lidar com a falha na comunicação
+      Serial.println("QR Code nao identificado na imagem!");
       resposta_servidor = "550";
     }
     else
@@ -552,7 +664,6 @@ void servidorWeb()
   //Captura a foto atraves das funçõeos
   server.on("/analisaFoto", HTTP_GET, [](AsyncWebServerRequest * request) {
 
-  
     String resposta = "";
     int cont = 0;
     /*
@@ -575,6 +686,27 @@ void servidorWeb()
     */
 
     resposta = EnvioAnaliseIMGMulter();
+
+    //Ocorreu algum erro na analise da imagem
+    if(resposta != "true" && resposta != "false")
+    {
+      request->send_P(500, "text/plain", resposta.c_str());
+      Serial.println("Erro: " + resposta);  
+    }
+    else{
+      request->send_P(200, "text/plain", resposta.c_str());
+      Serial.println(resposta);
+    }
+
+  });
+
+   //Captura a foto atraves das funçõeos
+  server.on("/analisaQR", HTTP_GET, [](AsyncWebServerRequest * request) {
+
+    String resposta = "";
+    int cont = 0;
+
+    resposta = EnvioAnaliseQRCODEMulter();
 
     //Ocorreu algum erro na analise da imagem
     if(resposta != "true" && resposta != "false")
