@@ -30,7 +30,7 @@ Promise.all([
 ]).then(() => console.log('Models loaded!'));
 
 router.post('/recognition', upload, async (req, res) => {
-  
+  console.time('Tempo de execução');
   try {
 
     /* IMAGEM RECEBIDA VIA POST */
@@ -139,12 +139,12 @@ router.post('/recognition', upload, async (req, res) => {
         console.log('Erro: nem todos os descritores faciais têm o mesmo tamanho');
         res.status(500).send("As dimensões dos descritores não são iguais");
       } 
-      console.time('Tempo de execução');
+      
       // Compara as características faciais da imagem com as características faciais do banco de dados
       const faceMatcher = new faceapi.FaceMatcher(savedDescriptors);
       const bestMatch = faceMatcher.findBestMatch(queryDescriptors);
       const result = bestMatch.toString();
-      console.timeEnd('Tempo de execução');
+      
       
       console.log("result:"+ result)
 
@@ -154,11 +154,10 @@ router.post('/recognition', upload, async (req, res) => {
       }
       else
       {
+        
         res.status(200).send(true);
-
+        console.timeEnd('Tempo de execução');
         const nome = result.substring(0, result.indexOf(' (')).trim();
-
-         // "Nome da Pessoa"
 
         const query1 = `SELECT id, nome, login FROM usuarios WHERE nome = '${nome}'`;
         console.log(query1);
@@ -183,7 +182,8 @@ router.post('/recognition', upload, async (req, res) => {
           }
           
           });
-
+          
+          
       }
   
     });

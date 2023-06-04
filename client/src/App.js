@@ -68,7 +68,7 @@ function App() {
   return (
     <>
       <Container>
-        <Title>USUARIOS</Title>
+        <Title>Modular Lock </Title>
         <Title1>REGISTER</Title1>
         <WebcamCapture setFaceFeatures={setFaceFeatures} />
         <Form onEdit={onEdit} setOnEdit={setOnEdit} getUsers={getUsers} faceDescription={faceDescription} setFaceDescription={setFaceDescription} faceFeatures={faceFeatures} />
