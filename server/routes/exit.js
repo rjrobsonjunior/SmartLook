@@ -16,6 +16,7 @@ router.post('/exit', (req, res) => {
 
     if (result.length > 0) {
       const id = result[0].id;
+      console.log(id);
       res.redirect(`/delete/${id}`);
     } 
     else {
