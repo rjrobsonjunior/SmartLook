@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include <ArduinoJson.h>
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>
@@ -59,7 +60,8 @@ IPAddress subnet(255, 255, 255, 0);  // Máscara de sub-rede
 // Rotas importantes
 String url_tirarFoto = "http://192.168.1.11/capture";
 const char* ip_espCAM = "192.168.1.11";
-String url_analiseLogin = "http://192.168.0.10:8800/login";
+String url_analiseLogin = "http://192.168.1.3:8800/login";
+String url_analiseCredenciaisSaida = "http://192.168.1.3:8800/exit";
 
 String rotaFoto = "/capture";
 String rotaFace = "/analisaFoto";

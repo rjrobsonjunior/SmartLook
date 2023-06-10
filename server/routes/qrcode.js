@@ -40,7 +40,7 @@ router.post('/qrcode', upload.single('qrcode'), async (req, res) => {
   const qrCodeData = await processQRCode(req.file.path);
 
   if (!qrCodeData) {
-    return res.status(400).send('QRCode data null');
+    return res.status(450).send('QRCode data null');
   }
 
   console.log(qrCodeData);
@@ -60,7 +60,7 @@ router.post('/qrcode', upload.single('qrcode'), async (req, res) => {
     else {
       if(senha1 == result[0].senha)
       {
-        res.send(`true`);
+        res.status(200).send(`true`);
         const usuario = result[0];
         
         const sql = 'INSERT INTO presents (id, nome, login) VALUES (?, ?, ?)';
@@ -77,7 +77,7 @@ router.post('/qrcode', upload.single('qrcode'), async (req, res) => {
       }
       else
       {
-        res.send(`false`);
+        res.status(200).send(`false`);
       }
     }
   });

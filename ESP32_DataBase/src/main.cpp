@@ -83,13 +83,31 @@ void start_display()
 
 }
 
+void display_acesso_liberado(String usuario)
+{
+    display.clearDisplay();
+    setCursorMeio();
+
+    display.println("Acesso liberado!"); // Texto a ser exibido
+    display.display(); 
+    delay(500);
+
+    display.clearDisplay();
+    display.println("Bem-vindo " + usuario); // Texto a ser exibido
+    display.display(); 
+    
+    
+    delay(3000);
+
+}
+
 void display_acesso_liberado()
 {
     display.clearDisplay();
     setCursorMeio();
 
     display.println("Acesso liberado!"); // Texto a ser exibido
-    display.display();  
+    display.display(); 
     
     delay(3000);
 
@@ -132,11 +150,7 @@ void credenciaisLogin()
   
   char key;
 
-  display.clearDisplay();
-  display.setCursor(0, 0);
-  display.println("--- Registro ---");
-  display.display();
-
+  Serial.print("Login = ");
   while(login_f.length() < 3) {
 
     key = keypad.getKey();
@@ -145,7 +159,7 @@ void credenciaisLogin()
     display.print("Login = ");
     display.display();
 
-    Serial.print("Login = ");
+    
 
     if(key != NO_KEY) {
       login_f += key;
@@ -158,6 +172,8 @@ void credenciaisLogin()
     }
   }
 
+  Serial.print("\nSenha = ");
+
   while(senha_f.length() < 5) {
 
     key = keypad.getKey();
@@ -165,8 +181,6 @@ void credenciaisLogin()
     display.setCursor(0, 16);
     display.print("Senha = ");
     display.display();
-
-    Serial.println("Senha = ");
 
     if(key != NO_KEY) {
       senha_f += key;
@@ -184,43 +198,77 @@ void credenciaisLogin()
 
   delay(500);
 
-  //Cadastro Finalizado
-  Serial.println("\nCadastro finalizado com sucesso!");
-  
-  display.clearDisplay();
-  display.setCursor(0, (display.height() - 8) / 2);
-  display.println("Credenciais cadastradas!");
-  display.display();
-  delay(1000);
-
 }
 
 //Faz a checagem se o login existe no Banco de Dados
-bool checarLoginDB()
+String checarLoginDB()
 {
   Serial.println("--- Consulta de Acesso ---");
 
   // Crie um objeto HTTPClient
   HTTPClient client;
   client.begin(url_analiseLogin);
+  /*
+  client.addHeader("Content-Type", "application/x-www-form-urlencoded");
+  String postData = "login=" + login + "&senha=" + senha;
+  */
+  client.addHeader("Content-Type", "application/json");
+
+  // Crie um objeto JSON com os dados de login e senha
+  StaticJsonDocument<200> jsonDoc;
+  jsonDoc["login"] = login;
+  jsonDoc["senha"] = senha;
+
+  // Converta o objeto JSON para uma string
+  String jsonData;
+  serializeJson(jsonDoc, jsonData);
+
+  int httpResponseCode = client.POST(jsonData);
+  String response = client.getString();
+
+  if (httpResponseCode == 200) 
+  {
+    Serial.println("checarLoginDB | Usuario encontrado!");
+  } 
+  else if(httpResponseCode == 400)
+  {
+    Serial.println("checarLoginDB | Senha invalida!");
+    response = "false";
+  }
+
+  else 
+  {
+    Serial.println("checarLoginDB | Erro na conexão com o servidor!");
+    Serial.println("HttpCode = " + httpResponseCode);
+    response = "false";
+  }
+
+  return response;
+  client.end();
+    
+}
+
+//Faz a checagem se o login existe no Banco de Dados
+bool checarCredenciaisSaida()
+{
+  Serial.println("--- Consulta de Acesso ---");
+
+  // Crie um objeto HTTPClient
+  HTTPClient client;
+  client.begin(url_analiseCredenciaisSaida);
   client.addHeader("Content-Type", "application/x-www-form-urlencoded");
   String postData = "login=" + login + "&senha=" + senha;
   int httpResponseCode = client.POST(postData);
 
   if (httpResponseCode == 200) 
-  {
-    String response = client.getString();
-
-    if (response == "true") {
-      client.end();
-      return true;
-    } 
-
+  { 
+    Serial.println("Usario deletado da lista de presentes!");
+    return true;
   } 
 
   else 
   {
-    Serial.println("checarLoginDB | Erro na conexão com o servidor!");
+    Serial.println("checarCredenciaisSaida | Erro na conexão com o servidor!");
     Serial.println("HttpCode = " + httpResponseCode);
   }
 
@@ -239,6 +287,8 @@ bool checarFaceDB()
     Serial.println("Falha na conexão com o servidor");
     return false;
   }
+
+  Serial.println("Mandando o espcam analisar a foto...");
 
   // Enviar a requisição GET
   client.print("GET /analisaFoto HTTP/1.1\r\n");
@@ -357,6 +407,7 @@ void tirarFoto()
   
   HTTPClient http;
   http.begin(url_tirarFoto);
+  //delay(3000);
   int httpCode = http.GET();
 
   if (httpCode == HTTP_CODE_OK) {
@@ -480,14 +531,30 @@ void loop()
   if (key == 'A') {
     Serial.println("--- Login e Senha ---");
 
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("--- Login e Senha ---");
+    display.display();
+
     //Registrando o login e senha
     credenciaisLogin();
 
+    //Cadastro Finalizado
+    Serial.println("\nCadastro finalizado com sucesso!");
+  
+    display.clearDisplay();
+    display.setCursor(0, (display.height() - 8) / 2);
+    display.println("Credenciais digitadas!");
+    display.display();
+    delay(1000);
+
     //Manda para a base de dados
-    if(checarLoginDB())
+    String respostaConsulta = checarLoginDB();
+
+    if(respostaConsulta != "false")
     {
-      Serial.println("Acesso Liberado!");
-      display_acesso_liberado();
+      Serial.println("Acesso Liberado! Bem vindo " + respostaConsulta);
+      display_acesso_liberado(respostaConsulta);
       //abrir_fechadura();
     }
 
@@ -510,7 +577,8 @@ void loop()
     display.display();
 
     //Mandar ESPCAM tirar a foto
-    tirarFoto();
+    //tirarFoto();
+    //delay(5000);
 
     //Mando o servidor analisar a foto
     if(checarFaceDB())
@@ -559,31 +627,104 @@ void loop()
 
   }
 
-
   if(key == 'D')
   {
-    Serial.println("--- Limpando Credenciais ---");
+    Serial.println("--- Tirando foto ---");
 
     display.clearDisplay();
     display.setCursor(0, 0);
-    display.println("Limpando Credenciais...");
+    display.println("Tirando foto...");
     display.display();
     delay(1000);
-
-    login = "";
-    senha = "";
   }
 
   if (key == '*') {
-    tirarFoto();
+    //Pessoa apertou o botao para sair
+    Serial.println("--- Saida ---");
+
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("--- Saida ---");
+    display.display();
+    delay(500);
+
+    credenciaisLogin();
+
+    display.setCursor(0, (display.height() - 8) / 2);
+
+    //Manda para a base de dados
+    if(checarCredenciaisSaida())
+    {
+      Serial.println("Saida Liberada! Obrigado pela visita!");
+      display.clearDisplay();
+      display.println("Saida Liberada!");
+      display.display();
+      delay(500);
+
+      //Enviar rota para o servidor tirar o usuario da lista de presentes
+
+    }
+
+    else
+    {
+      Serial.println("Usuario não reconhecido!");
+      display.clearDisplay();
+      display.println("Usuario não reconhecido!");
+      display.display();
+      delay(500);
+    }
+
+    display.clearDisplay();
+    display.println("Obrigado pela visita!");
+    display.display();
+    delay(1000);
+
   }
+  
   
   if(digitalRead(FECHADURA_PIN) == LOW)
   {
     //Pessoa apertou o botao para sair
-    Serial.println("Abrindo fechadura...");
-    abrir_fechadura();
+    Serial.println("--- Saida ---");
+
+    display.clearDisplay();
+    display.setCursor(0, 0);
+    display.println("--- Saida ---");
+    display.display();
+    delay(500);
+
+    credenciaisLogin();
+
+    display.setCursor(0, (display.height() - 8) / 2);
+
+    //Manda para a base de dados
+    if(checarCredenciaisSaida())
+    {
+      Serial.println("Saida Liberada! Obrigado pela visita!");
+      display.clearDisplay();
+      display.println("Saida Liberada!");
+      display.display();
+      delay(500);
+
+      //Enviar rota para o servidor tirar o usuario da lista de presentes
+
+    }
+
+    else
+    {
+      Serial.println("Usuario não reconhecido!");
+      display.clearDisplay();
+      display.println("Usuario não reconhecido!");
+      display.display();
+      delay(500);
+    }
+
+    display.clearDisplay();
+    display.println("Obrigado pela visita!");
+    display.display();
+    delay(1000);
   }
+  
   
 }
 

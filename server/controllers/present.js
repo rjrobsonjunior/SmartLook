@@ -30,7 +30,7 @@ const deleteUser = (req, res) => {
   const q = "DELETE FROM presents WHERE `id` = ?";
 
   db.query(q, [req.params.id], (err) => {
-    if (err) return res.json(err);
+    if (err) return res.status(400).json(err);
 
     return res.status(200).json("Usuário deletado com sucesso.");
   });
