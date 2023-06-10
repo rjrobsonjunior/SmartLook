@@ -45,8 +45,6 @@ router.get('/dataModificacaoFoto', (req, res) => {
       res.status(500).send('Erro ao obter a data de modificação da foto');
     } else {
       const modifiedDate = moment(stats.mtime).format('DD-MM-YYYY HH:mm:ss');
-      console.log("Data de modificação: ");
-      console.log(modifiedDate);
       res.status(200).json({ dataModificacao: modifiedDate });
     }
   });

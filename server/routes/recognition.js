@@ -245,7 +245,7 @@ router.get('/recognition1', async (req, res) => {
 
         if (tempoDecorrido >= tempoMaximoEspera) {
           clearInterval(intervalo);
-          reject(new Error("\nTempo máximo de espera atingido"));
+          reject(new Error("\nTempo máximo de espera atingido! O processamento vai continuar com a imagem atual!"));
         }
       }
 
@@ -260,7 +260,7 @@ router.get('/recognition1', async (req, res) => {
   } 
   catch (error) {
     console.error(error.message);
-    return res.status(404).send('Tempo maximo atigindo!');
+    //return res.status(404).send('Tempo maximo atigindo! O processamento vai continuar com a imagem atual');
   }
 
   
