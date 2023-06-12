@@ -282,7 +282,7 @@ void piscarLED()
 void initLittleFS()
 {
   //Inicilizando LittleFS
-  if (!SPIFFS.begin(true)) {
+  if (!LittleFS.begin(true)) {
     Serial.println("An Error has occurred while mounting LittleFS");
     ESP.restart();
   }
@@ -324,7 +324,7 @@ void salvarImagemLITTLEFS(camera_fb_t* img)
   Serial.printf("Picture file name: %s\n", FILE_PHOTO);
   
   
-  if (SPIFFS.remove(FILE_PHOTO)) {
+  if (LittleFS.remove(FILE_PHOTO)) {
     Serial.println("Imagem excluída com sucesso");
   } else {
     Serial.println("Falha ao excluir a imagem");
@@ -332,7 +332,7 @@ void salvarImagemLITTLEFS(camera_fb_t* img)
   
 
   // Abre o arquivo no modo de escrita
-  File file = SPIFFS.open(FILE_PHOTO, FILE_WRITE);
+  File file = LittleFS.open(FILE_PHOTO, FILE_WRITE);
   Serial.print(" - Size: ");
   Serial.println(file.size());
 
@@ -416,7 +416,7 @@ void tiraFoto()
     salvarImagemLITTLEFS(fb);
 
     //Verifico se a foto foi salva corretamente
-    ok = checarSalvamento(SPIFFS);
+    ok = checarSalvamento(LittleFS);
     
   }
   while(!ok);  //do-while forma de loop que permite com que o bloco seja executado a primeira vez para ai se verificar a condição
@@ -431,7 +431,7 @@ String EnvioAnaliseIMGMulter()
   String resposta_servidor = "";
 
   // Abre o arquivo de imagem salvo no LittleFS
-  File file = SPIFFS.open(FILE_PHOTO, FILE_READ);
+  File file = LittleFS.open(FILE_PHOTO, FILE_READ);
   
   if (!file) {
     Serial.println("Falha ao abrir o arquivo de imagem");
@@ -551,7 +551,7 @@ String EnvioAnaliseQRCODEMulter()
   String resposta_servidor = "";
 
   // Abre o arquivo de imagem salvo no LittleFS
-  File file = SPIFFS.open(FILE_PHOTO, FILE_READ);
+  File file = LittleFS.open(FILE_PHOTO, FILE_READ);
   
   if (!file) {
     Serial.println("Falha ao abrir o arquivo de imagem");
@@ -662,106 +662,6 @@ String EnvioAnaliseQRCODEMulter()
   return resposta_servidor;
 }
 
-
-bool tirarFotoServidor()
-{
-  //Nessa função eu tiro a foto e mando para a aplicação web. 
-
-  //A aplicação pega a foto e exibe, se o usuario quiser ele salva a foto e manda para a analise, caso nao, ele manda tirar outra foto
-
-  camera_fb_t* foto = esp_camera_fb_get();
-  String resposta = "";
-
-
-  if(!foto)
-  {
-    Serial.println("Erro ao capturar a foto!");
-    return false;;
-  }
-
-  //Envio da foto via requisiçao POST
-  WiFiClient client;
-  if (!client.connect(serverIP, 8800)) {
-    Serial.println("Falha ao conectar ao servidor");
-    return false;;
-  }
-
-  // Gerar um valor de boundary único | Valor serve para identificar o começo e final da requisição
-  String boundary = "--------------------------" + String(millis());
-
-  client.println("POST /upload HTTP/1.1");
-  client.println("Host: " + String(serverIP));
-  client.println("Content-Type: multipart/form-data; boundary=" + boundary);
-  client.println();
-
-  client.println(boundary);
-  client.println("Content-Disposition: form-data; name=\"imagem\"; filename=\"photo.jpg\"");
-  client.println("Content-Type: image/jpeg");
-  client.println();
-
-  // Escreva os dados da imagem no corpo da requisição
-  client.write(foto->buf, foto->len);
-
-  client.println();
-  client.print(boundary);
-  client.println("--");
-
-  Serial.print("ESPCAM - tirarFotoServidor | Enviando a imagem para o servidor: ");
-  Serial.println(serverUrlANALISE); 
-
-  int statusCode = 0;
-
-  // Aguarde a resposta do servidor
-  while (client.connected()) {
-
-    if (client.available()) {
-
-      // Leia e processe a resposta do servidor
-      String response = client.readString();
-      Serial.println("\nESPCAM - tirarFotoServidor | Codigo completo da resposta da requisição:\n");
-      Serial.println(response);
-
-      // Extrair o código de resposta
-      int statusCodeStart = response.indexOf(' ') + 1;
-      int statusCodeEnd = response.indexOf(' ', statusCodeStart);
-      String statusCodeString = response.substring(statusCodeStart, statusCodeEnd);
-      statusCode = atoi(statusCodeString.c_str());
-
-      // Extrair a última linha da resposta
-      int lastNewlinePos = response.lastIndexOf('\n');
-      String lastLine = response.substring(lastNewlinePos + 1);
-      resposta = lastLine;
-      break;
-    }
-
-    esp_task_wdt_reset();
-
-  }
-
-  Serial.println("-----------------------------------------");
-  Serial.print("Codigo da requisição = ");
-  Serial.println(statusCode);
-  Serial.println("Resposta da ultima linha = " + resposta);
-  Serial.println("-----------------------------------------");
-
-  // Feche a conexão
-  client.stop();
-
-  // Verifique a resposta
-  if (statusCode == 200) {
-
-    Serial.println("Foto tirada e salvada com sucesso!");
-  }
-
-  else
-  {
-    Serial.println("REQUISIÇÃO | Falha na requisição POST!");
-    return false;
-  }
-
-  return true;
-}
-
 //Abre a foto salva no LittleFS do ESP32CAM
 void servidorWeb()
 {
@@ -813,9 +713,6 @@ void servidorWeb()
       Serial.println(resposta);
     }
 
-
-
-
   });
 
    //Captura a foto atraves das funçõeos
@@ -839,28 +736,9 @@ void servidorWeb()
 
   });
 
-  server.on("/testeFoto", HTTP_GET, [](AsyncWebServerRequest * request) {
-
-
-    //Apenas tira a foto e manda para o servidor
-    bool resposta = tirarFotoServidor();
-
-    //Ocorreu algum erro na analise da imagem
-    if(!resposta)
-    {
-      request->send_P(500, "text/plain", "Falha no envio da imagem");  
-    }
-    else{
-      request->send_P(200, "text/plain", "Imagem enviada e salva com sucesso!");
-    }
-
-  }); 
-
-
-
   //Mostra a foto na memoria LittleFS do ESPCAM
   server.on("/saved-photo", [](AsyncWebServerRequest * request) {
-    request->send(SPIFFS, FILE_PHOTO, "image/jpg", false);
+    request->send(LittleFS, FILE_PHOTO, "image/jpg", false);
   });
 
   server.on("/stream", HTTP_GET, [](AsyncWebServerRequest * request) {

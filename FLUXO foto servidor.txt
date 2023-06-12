@@ -1,0 +1,13 @@
+FLUXO
+
+-> ESP32 GET ESPCAM (Manda o espcam tirar a foto e analisar) 
+-> ESPCAM POST SERVIDOR (Manda a foto para o servidor analisar )
+-> Usuário GET Servidor (Página web para conferência da foto tirada)
+
+PAGINA WEB É SO PARA CONFERÊNCIA DA FOTO
+
+CLIENTE QUE MANDA A REQUISIÇÃO
+  - Pode conferir a foto tirada 
+  - Pode mandar tirar a foto de novo
+
+-----> EX

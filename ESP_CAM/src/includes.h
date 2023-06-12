@@ -12,15 +12,12 @@
 const char* ssid = "Adryan e Enzo";
 const char* password = "corvssan";
 AsyncWebServer server(80);
+AsyncWebSocket asyncWs("/ws");
+
 
 //Servidor local - Node.js
-const char* serverIP = "192.168.1.10";
-const char* serverUrlANALISE = "http://192.168.1.10:8800/recognition";
-
-//Envio Requisição HTTPS (SERVIDOR WEB EXTERNO)
-String serverNameS = "fechaduraeletronica.000webhostapp.com";
-String serverPathS= "/upload.php";
-const int serverPortS = 443;
+const char* serverIP = "192.168.1.3";
+const char* serverUrlANALISE = "http://192.168.1.3:8800/recognition";
 
 /*--- CAMERA ---*/
 
@@ -33,6 +30,7 @@ const int serverPortS = 443;
 #include "driver/rtc_io.h"
 #include <StringArray.h>
 #include <FS.h>
+#include "LittleFS.h"
 #include "fb_gfx.h"
 
 // OV2640 camera module pins (CAMERA_MODEL_AI_THINKER)
@@ -55,5 +53,17 @@ const int serverPortS = 443;
 #define FLASH_GPIO_NUM 4
 
 //Caminho da foto
-#define FILE_PHOTO "/imagem.jpg"
+const char* FILE_PHOTO = "/imagem.jpg";
+
+//Variavel de controle
+boolean takeNewPhoto = false;
+
+
+//Referente ao liveview
+#define PART_BOUNDARY "123456789000000000000987654321"
+static const char* _STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" PART_BOUNDARY;
+static const char* _STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
+static const char* _STREAM_PART = "Content-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n";
+
+uint8_t counter;
 
