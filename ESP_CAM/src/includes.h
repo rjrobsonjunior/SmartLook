@@ -16,7 +16,7 @@ AsyncWebSocket asyncWs("/ws");
 
 
 //Servidor local - Node.js
-const char* serverIP = "192.168.1.3";
+const char* serverIP = "192.168.1.4";
 const char* serverUrlANALISE = "http://192.168.1.3:8800/recognition";
 
 /*--- CAMERA ---*/

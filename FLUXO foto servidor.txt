@@ -10,4 +10,4 @@ CLIENTE QUE MANDA A REQUISIÇÃO
   - Pode conferir a foto tirada 
   - Pode mandar tirar a foto de novo
 
------> EX
+-----> Minha ideia era ter uma pagina web que o usuario pode conferir a foto tirada e se ficar ruim tirar de novo. Então a minha ideia é o espcam mandar a requisição post para o servidor e o servidor esperar uma solicitação do get da mesma rota

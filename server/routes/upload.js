@@ -20,6 +20,8 @@ const upload = multer({ storage: storage });
 
 router.post('/foto', upload.single('imagem'), function (req, res) {
   
+  //console.log(req); 
+
   if (req.file) {
     res.send("Single file uploaded successfully");
   } 
