@@ -64,9 +64,7 @@ function WebcamCapture(props) {
   }
 
   const handleVideoOnPlay = () => {
-
     setInterval(async () => {
-      
       if (canvasRef && canvasRef.current) {
         canvasRef.current.innerHTML = faceapi.createCanvasFromMedia(videoRef.current);
         const displaySize = {

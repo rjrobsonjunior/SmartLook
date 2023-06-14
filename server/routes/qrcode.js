@@ -1,12 +1,70 @@
 const express = require('express');
 const { db } = require('../db.js');
 const multer = require('multer');
+const qr = require('qr-image');
+const fs = require('fs');
 const jsQR = require('jsqr');
 const {createCanvas, loadImage } = require('canvas');
 
 const upload = multer({
-  dest: './routes/uploads'
-})
+  dest: './routes/uploads',
+});
+
+/*const multer = require('multer');
+const qr = require('qr-image');
+const processQRCode = (imagePath) => {
+  return new Promise((resolve, reject) => {
+    const qrDecoder = qr.reader();
+    qrDecoder.callback = (err, result) => {
+      if (err) {
+        reject(err);
+      } else {
+        resolve(result.data);
+      }
+    };
+
+    const image = qr.image(imagePath);
+    image.pipe(qrDecoder);
+  });
+};
+*/
+/**
+const processQRCode = async (filePath) => {
+  try {
+    // Carrega a imagem usando a biblioteca Jimp
+    const image = await Jimp.read(filePath);
+
+    // Converte a imagem para um array de pixels
+    const { width, height } = image.bitmap;
+    const imageData = new Uint8ClampedArray(width * height * 4);
+
+    image.scan(0, 0, width, height, (x, y, idx) => {
+      const pixel = image.getPixelColor(x, y);
+      imageData[idx] = Jimp.rgbaToInt(...Jimp.intToRGBA(pixel)).r;
+      imageData[idx + 1] = Jimp.rgbaToInt(...Jimp.intToRGBA(pixel)).g;
+      imageData[idx + 2] = Jimp.rgbaToInt(...Jimp.intToRGBA(pixel)).b;
+      imageData[idx + 3] = Jimp.rgbaToInt(...Jimp.intToRGBA(pixel)).a;
+    });
+
+    // Decodifica a imagem em busca do QR Code
+    const code = jsQR(imageData, width, height);
+
+    // Verifica se o QR Code foi encontrado
+    if (!code) {
+      throw new Error('Não foi possível encontrar o QR Code na imagem.');
+    }
+
+    // Obtém os dados do QR Code
+    const qrCodeData = code.data;
+
+    // Retorna os dados do QR Code
+    return qrCodeData;
+  } catch (error) {
+    throw new Error(`Erro ao processar a imagem do QR Code: ${error.message}`);
+  }
+};
+ */
+
 
 async function processQRCode(imagePath) {
   try {
@@ -19,6 +77,7 @@ async function processQRCode(imagePath) {
 
     if (code && code.data) {
       const qrCodeData = code.data;
+      console.log(qrCodeData);
       return qrCodeData;
     } else {
       return null;
@@ -27,7 +86,7 @@ async function processQRCode(imagePath) {
     console.error('Erro ao processar o QR Code:', error);
     return null;
   }
-}
+};
 
 const router = express.Router();
 
@@ -37,12 +96,12 @@ router.post('/qrcode', upload.single('qrcode'), async (req, res) => {
     return res.status(400).send("QRCode null");
   }
 
+
   const qrCodeData = await processQRCode(req.file.path);
 
   if (!qrCodeData) {
     return res.status(450).send('QRCode data null');
   }
-
   console.log(qrCodeData);
   const parsedData = JSON.parse(qrCodeData);
 
