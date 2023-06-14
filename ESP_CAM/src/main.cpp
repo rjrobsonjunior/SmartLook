@@ -23,7 +23,7 @@ const char index_html[] PROGMEM = R"rawliteral(
       <button id="captureButton" onclick="capturePhoto()">TIRAR FOTO</button>
       <button onclick="location.reload();">RECARREGAR</button>
       <button onclick="analisaFoto()">ANALISAR</button>
-      <button onclick="qrCode()">TESTE</button>
+      <button onclick="qrCode()">QR CODE</button>
     </p>
   </div>
   <div><img src="saved-photo" id="photo" width="70%"></div>
@@ -52,7 +52,7 @@ const char index_html[] PROGMEM = R"rawliteral(
 
   function qrCode() {
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', "/testeFoto", true);
+    xhr.open('GET', "/analisaQR", true);
     xhr.send();
   }
 
@@ -671,7 +671,6 @@ bool tirarFotoServidor()
 
   camera_fb_t* foto = esp_camera_fb_get();
   String resposta = "";
-  delay(500);
 
 
   if(!foto)
@@ -690,8 +689,7 @@ bool tirarFotoServidor()
   // Gerar um valor de boundary único | Valor serve para identificar o começo e final da requisição
   String boundary = "--------------------------" + String(millis());
 
-  /*
-  client.println("POST /foto HTTP/1.1");
+  client.println("POST /upload HTTP/1.1");
   client.println("Host: " + String(serverIP));
   client.println("Content-Type: multipart/form-data; boundary=" + boundary);
   client.println();
@@ -700,7 +698,6 @@ bool tirarFotoServidor()
   client.println("Content-Disposition: form-data; name=\"imagem\"; filename=\"photo.jpg\"");
   client.println("Content-Type: image/jpeg");
   client.println();
-  
 
   // Escreva os dados da imagem no corpo da requisição
   client.write(foto->buf, foto->len);
@@ -713,28 +710,7 @@ bool tirarFotoServidor()
   Serial.println(serverUrlANALISE); 
 
   int statusCode = 0;
-  */
 
-  // Criação do corpo da requisição
-  String requestBody = "--" + boundary + "\r\n";
-  requestBody += "Content-Disposition: form-data; name=\"imagem\"; filename=\"imagem.jpg\"\r\n";
-  requestBody += "Content-Type: image/jpeg\r\n";
-  requestBody += "\r\n";
-  requestBody += String((char*)foto->buf, foto->len) + "\r\n";
-  requestBody += "--" + boundary + "--\r\n";
-
-  // Construir a requisição HTTP
-  String request = "POST /foto HTTP/1.1\r\n";
-  request += "Host: " + String(serverIP) + "\r\n";
-  request += "Content-Type: multipart/form-data; boundary=" + boundary + "\r\n";
-  request += "Content-Length: " + String(requestBody.length()) + "\r\n";
-  request += "\r\n";
-  request += requestBody;
-
-  // Envie a requisição HTTP
-  client.print(request);
-
-  int statusCode = 0;
   // Aguarde a resposta do servidor
   while (client.connected()) {
 
@@ -770,7 +746,6 @@ bool tirarFotoServidor()
 
   // Feche a conexão
   client.stop();
-  esp_camera_fb_return(foto);
 
   // Verifique a resposta
   if (statusCode == 200) {
