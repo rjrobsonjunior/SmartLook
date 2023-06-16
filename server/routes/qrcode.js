@@ -5,7 +5,7 @@ const path = require('path');
 const jsQR = require('jsqr');
 const {createCanvas, loadImage } = require('canvas');
 const Jimp = require('jimp');
-//const QRCodeReader = require('qrcode-reader');
+////const QRCodeReader = require('qrcode-reader');
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -27,7 +27,7 @@ router.post('/qrcode', upload.single('qrcode'), async (req, res) => {
   }
 });
 
-/*
+
 async function processQRCode(imagePath) {
   console.log("Estou na processQRCode");
 
@@ -56,42 +56,6 @@ async function processQRCode(imagePath) {
     return null;
   }
 };
-*/   
-
-/*
-const processQRCode = async (imagePath) => {
-  try {
-    await Jimp.read(imagePath, (err, img) => {
-      if (err) {
-        console.error('Error reading image:', err);
-        return res.status(500).json({ error: 'Error reading image' });
-      }
-      const qrcode = new QRCodeReader();
-      
-      qrcode.callback = function(err, value) {
-       if (err) {
-           console.error(err);
-       }
-       console.log(value.result);
-      };
-      qrcode.decode(img.bitmap);
-
-      const result = value.result;     
-
-      if (result) {
-        return result;
-      } 
-      else {
-        return null;
-      }
-
-    });
-  } catch (error) {
-    console.error('Erro ao processar o QR Code:', error);
-    return null;
-  }
-};
-*/
 
 
 router.get('/qrcodeAnalise', async (req, res) => {
