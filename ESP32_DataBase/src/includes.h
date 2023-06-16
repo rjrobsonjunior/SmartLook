@@ -49,8 +49,8 @@ Keypad keypad = Keypad(makeKeymap(keys), rowPins, colPins, ROWS, COLS); //Inicia
 /* ---------------- Configurações de Rede ---------------- */
 
 // Wifi
-const char* ssid = "Adryan e Enzo";
-const char* password_wifi = "corvssan";
+const char* ssid = "REDE_FECHADURA";
+const char* password_wifi = "thiagolindo";
 
 // Rede ESP32
 IPAddress local_IP(192, 168, 0, 10); // Endereço IP do ESP32
@@ -58,16 +58,19 @@ IPAddress gateway(192, 168, 144, 139);   // Endereço do gateway
 IPAddress subnet(255, 255, 255, 0);  // Máscara de sub-rede
 
 // Rotas importantes
-String url_tirarFoto = "http://192.168.1.11/capture";
-const char* ip_espCAM = "192.168.1.11";
-String url_analiseLogin = "http://192.168.1.3:8800/login";
-String url_analiseCredenciaisSaida = "http://192.168.1.3:8800/exit";
+String url_tirarFoto = "http://192.168.0.8/capture";
+const char* ip_espCAM = "192.168.0.8";
+const char* ip_Servidor = "192.168.0.6";
+String url_analiseLogin = "http://192.168.0.6:8800/login";
+String url_analiseCredenciaisSaida = "http://192.168.0.6:8800/exit";
+String url_registroPessoas = "http://192.168.0.6:8800/pessoas";
 
 String rotaFoto = "/capture";
 String rotaFace = "/analisaFoto";
 
-// Variáveis para armazenar o nome de usuário e a senha
+// Variáveis globais
 String login = "";
 String senha = "";
 String nome_usuario = "";
 
+int pessoas_contagem = 0;

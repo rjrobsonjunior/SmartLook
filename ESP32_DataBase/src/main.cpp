@@ -29,7 +29,6 @@ void connect_wifi()
   Serial.println(WiFi.localIP());
   Serial.print("Endereço MAC: ");
   Serial.println(WiFi.macAddress());
-
   Serial.println("Conectado à rede WiFi");
 }
 
@@ -201,17 +200,13 @@ void credenciaisLogin()
 }
 
 //Faz a checagem se o login existe no Banco de Dados
-String checarLoginDB()
+bool checarLoginDB()
 {
   Serial.println("--- Consulta de Acesso ---");
 
   // Crie um objeto HTTPClient
   HTTPClient client;
   client.begin(url_analiseLogin);
-  /*
-  client.addHeader("Content-Type", "application/x-www-form-urlencoded");
-  String postData = "login=" + login + "&senha=" + senha;
-  */
   client.addHeader("Content-Type", "application/json");
 
   // Crie um objeto JSON com os dados de login e senha
@@ -229,21 +224,24 @@ String checarLoginDB()
   if (httpResponseCode == 200) 
   {
     Serial.println("checarLoginDB | Usuario encontrado!");
+    nome_usuario = response;
+
+    client.end();
+    return true;
+
   } 
   else if(httpResponseCode == 400)
   {
     Serial.println("checarLoginDB | Senha invalida!");
-    response = "false";
   }
 
   else 
   {
     Serial.println("checarLoginDB | Erro na conexão com o servidor!");
     Serial.println("HttpCode = " + httpResponseCode);
-    response = "false";
   }
 
-  return response;
+  return false;
   client.end();
     
 }
@@ -292,7 +290,9 @@ bool checarFaceDB()
 
   // Enviar a requisição GET
   client.print("GET /reconhecimentoFacial HTTP/1.1\r\n");
-  client.print("Host: 192.168.1.11\r\n");
+  client.print("Host: ");
+  client.print(ip_espCAM);
+  client.print("\r\n");
   client.print("Connection: close\r\n\r\n");
 
   // Aguardar a resposta do servidor
@@ -310,8 +310,8 @@ bool checarFaceDB()
   }
 
   // Extrair a última linha da resposta 
-  int lastNewlinePos = response.lastIndexOf('\n');
-  String lastLine = response.substring(lastNewlinePos + 1);
+  int lastNewlinePos = resposta.lastIndexOf('\n');
+  String lastLine = resposta.substring(lastNewlinePos + 1);
 
   // Analisar a resposta do servidor
   if (resposta.startsWith("HTTP/1.1 200 OK")) 
@@ -340,15 +340,24 @@ bool checarQrCodeDB()
   // Conectar ao servidor
   WiFiClient client;
   
-  if (!client.connect("192.168.1.6", 8800)) 
+  if (!client.connect(ip_Servidor, 8800)) 
   {
     Serial.println("Falha na conexão com o servidor");
     return false;
   }
 
+  /*
   // Enviar a requisição GET
   client.print("GET /analisaQR HTTP/1.1\r\n");
   client.print("Host: 192.168.1.6\r\n");
+  client.print("Connection: close\r\n\r\n");
+  */
+
+  // Enviar a requisição GET
+  client.print("GET /analisaQR HTTP/1.1\r\n");
+  client.print("Host: ");
+  client.print(ip_Servidor);
+  client.print("\r\n");
   client.print("Connection: close\r\n\r\n");
 
   // Aguardar a resposta do servidor
@@ -366,8 +375,8 @@ bool checarQrCodeDB()
   }
 
   // Extrair a última linha da resposta 
-  int lastNewlinePos = response.lastIndexOf('\n');
-  String lastLine = response.substring(lastNewlinePos + 1);
+  int lastNewlinePos = resposta.lastIndexOf('\n');
+  String lastLine = resposta.substring(lastNewlinePos + 1);
 
   // Analisar a resposta do servidor
   if (resposta.startsWith("HTTP/1.1 200 OK")) 
@@ -425,13 +434,49 @@ int contagem_pessoas()
   }
 }
 
+
+//Envia uma requisição post com a quantidade de pessoas que entraram
+void quantasPessoasEntraram()
+{
+  // Crie um objeto HTTPClient
+  HTTPClient client;
+  client.begin(url_registroPessoas);
+  client.addHeader("Content-Type", "application/json");
+
+  // Crie um objeto JSON com os dados de login e senha
+  StaticJsonDocument<200> jsonDoc;
+  jsonDoc["pessoas"] = pessoas_contagem;
+
+  // Converta o objeto JSON para uma string
+  String jsonData;
+  serializeJson(jsonDoc, jsonData);
+
+  int httpResponseCode = client.POST(jsonData);
+  String response = client.getString();
+
+  if (httpResponseCode == 200) 
+  {
+    Serial.println("quantasPessoasEntraram | Enviado com sucesso!");
+    nome_usuario = response;
+
+  } 
+
+  else 
+  {
+    Serial.println("quantasPessoasEntraram | Erro na conexão com o servidor!");
+    Serial.println("HttpCode = " + httpResponseCode);
+  }
+
+  client.end();
+}
+
 void abrir_fechadura()
 {
 
   //SENSOR MAGNÉTICO: 0 - FECHADO(SENSOR SE ENCONSTANDO) | 1 - ABERTO
   
   int tempo_atual = millis();
-  int pessoas = 0;
+  pessoas_contagem = 0;
   
   //tone(BUZZER_PIN, NOTA_BUZZER, 500); 
   
@@ -481,7 +526,7 @@ void abrir_fechadura()
     if(saida == true && estado == false)
     {
       estado = true;
-      pessoas++;
+      pessoas_contagem++;
     }
     else if(saida == false && estado == true)
     {
@@ -496,7 +541,10 @@ void abrir_fechadura()
   digitalWrite(RELE_PIN, LOW);
 
   //Envio da quantidade de pessooas ao dashboard web
-  Serial.println(pessoas + "pessoas entraram no ambiente!");
+  Serial.println(pessoas_contagem + "pessoas entraram no ambiente!");
+  
+  //Envia um post ao servidor indicando quantas pessoas entraram
+  quantasPessoasEntraram();
   
 
 }
@@ -540,12 +588,12 @@ void loop()
     delay(1000);
 
     //Manda para a base de dados
-    String respostaConsulta = checarLoginDB();
+    bool respostaConsulta = checarLoginDB();
 
-    if(respostaConsulta != "false")
+    if(respostaConsulta)
     {
-      Serial.println("Acesso Liberado! Bem vindo " + respostaConsulta);
-      display_acesso_liberado(respostaConsulta);
+      Serial.println("Acesso Liberado! Bem vindo " + nome_usuario);
+      display_acesso_liberado(nome_usuario);
       abrir_fechadura();
     }
 
@@ -666,7 +714,7 @@ void loop()
 
   }
   
-  
+  /*
   if(digitalRead(FECHADURA_PIN) == LOW)
   {
     //Pessoa apertou o botao para sair
@@ -709,7 +757,7 @@ void loop()
     display.display();
     delay(1000);
   }
-  
+  */
   
 }
 

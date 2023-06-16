@@ -9,15 +9,16 @@
 
 /*--- Rede ---*/
 
-const char* ssid = "Adryan e Enzo";
-const char* password = "corvssan";
+const char* ssid = "REDE_FECHADURA";
+const char* password = "thiagolindo";
 AsyncWebServer server(80);
 AsyncWebSocket asyncWs("/ws");
 
 
 //Servidor local - Node.js
-const char* serverIP = "192.168.1.4";
-const char* serverUrlANALISE = "http://192.168.1.3:8800/recognition";
+const char* serverIP = "192.168.0.6";
+const char* serverUrlANALISE = "http://192.168.0.6:8800/recognition";
+const int portServer = 8800;
 
 /*--- CAMERA ---*/
 
@@ -65,5 +66,4 @@ static const char* _STREAM_CONTENT_TYPE = "multipart/x-mixed-replace;boundary=" 
 static const char* _STREAM_BOUNDARY = "\r\n--" PART_BOUNDARY "\r\n";
 static const char* _STREAM_PART = "Content-Type: image/jpeg\r\nContent-Length: %u\r\n\r\n";
 
-uint8_t counter;
 

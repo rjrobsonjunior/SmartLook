@@ -68,34 +68,6 @@ const char index_html[] PROGMEM = R"rawliteral(
 </script>
 </html>)rawliteral";
 
-//Função que imprime no monitor serial e no /log o servidor web a mensagemm
-void Aprint(String mensagem)
-{
-  Serial.println(mensagem);
-
-  //Requisição POST para imprimir na pagina web
-  HTTPClient req;
-  String url = "http://192.168.1.19/log";
-  mensagem = "message="+mensagem;
-  req.begin(url);
-  req.addHeader("Content-Type", "application/x-www-form-urlencoded");
-  req.addHeader("Content-Length", String(mensagem.length()));
-
-  int httpResponseCode = req.POST(mensagem);
-
-
-  if (httpResponseCode > 0) {
-    Serial.print("void Aprint() | HTTP Response code: ");
-    Serial.println(httpResponseCode);
-  } 
-  else {
-    Serial.print("void Aprint() | Error on HTTP request: ");
-    Serial.println(httpResponseCode);
-  }
-  
-  req.end();
-}
-
 void initCamera()
 {
   // OV2640 camera module
@@ -213,7 +185,12 @@ void connectWiFi()
   serverESP = ipESP.toString();
 
   Serial.println(ipESP);
+  Serial.print("Endereço MAC: ");
+  Serial.println(WiFi.macAddress()); 
+  
+  
 }
+
 
 // Função para salvar a imagem no LittleFS
 void salvarImagemLITTLEFS(camera_fb_t* img) 
@@ -329,6 +306,7 @@ bool tirarFotoServidor()
   String resposta = "";
   bool foto_foi_tirada = false;
   int cont = 0;
+  camera_fb_t* foto;
 
   //Repete por ate tres vezes a captura de imagem ate que de certo
   do{
@@ -354,7 +332,7 @@ bool tirarFotoServidor()
     
     delay(500);
 
-    camera_fb_t* foto = esp_camera_fb_get();
+    foto = esp_camera_fb_get();
   
     if(!foto)
     {
@@ -370,7 +348,7 @@ bool tirarFotoServidor()
 
     cont++;
 
-  } while(!foto_foi_tirada)
+  } while(!foto_foi_tirada);
 
   //Envio da foto via requisiçao POST
   WiFiClient client;
@@ -459,10 +437,10 @@ String analiseFaceServidor()
   // Conectar ao servidor
   WiFiClient client;
   
-  if (!client.connect("192.168.1.6", 8800)) 
+  if (!client.connect(serverIP, portServer)) 
   {
     Serial.println("Falha na conexão com o servidor");
-    return false;
+    return "500";
   }
 
   Serial.println("Mandando o espcam analisar a foto...");
@@ -492,7 +470,6 @@ String analiseFaceServidor()
   int statusCodeEnd = resposta.indexOf(' ', statusCodeStart);
   String statusCodeString = resposta.substring(statusCodeStart, statusCodeEnd);
   statusCode = atoi(statusCodeString.c_str());
-  resposta = String(statusCode);
   
 
   // Analisar a resposta do servidor
@@ -502,12 +479,14 @@ String analiseFaceServidor()
     Serial.println("Face reconhecida!");
 
     // Extrair a última linha da resposta (Nome da pessoa)
-    int lastNewlinePos = response.lastIndexOf('\n');
-    String lastLine = response.substring(lastNewlinePos + 1);
+    int lastNewlinePos = resposta.lastIndexOf('\n');
+    String lastLine = resposta.substring(lastNewlinePos + 1);
 
     resposta = lastLine;
     
-  } 
+  }
+
+  resposta = String(statusCode);
 
   // Fechar a conexão
   client.stop();
@@ -519,10 +498,10 @@ String analiseQRCODE()
   // Conectar ao servidor
   WiFiClient client;
   
-  if (!client.connect("192.168.1.6", 8800)) 
+  if (!client.connect(serverIP, portServer)) 
   {
     Serial.println("Falha na conexão com o servidor");
-    return false;
+    return "false";
   }
 
   // Enviar a requisição GET
@@ -550,7 +529,6 @@ String analiseQRCODE()
   int statusCodeEnd = resposta.indexOf(' ', statusCodeStart);
   String statusCodeString = resposta.substring(statusCodeStart, statusCodeEnd);
   statusCode = atoi(statusCodeString.c_str());
-  resposta = "false";
   
 
   // Analisar a resposta do servidor
@@ -560,13 +538,15 @@ String analiseQRCODE()
     Serial.println("Qr code reconhecido!");
 
     // Extrair a última linha da resposta (Nome da pessoa)
-    int lastNewlinePos = response.lastIndexOf('\n');
-    String lastLine = response.substring(lastNewlinePos + 1);
+    int lastNewlinePos = resposta.lastIndexOf('\n');
+    String lastLine = resposta.substring(lastNewlinePos + 1);
 
     resposta = lastLine;
     
   }
   
+  resposta = "false";
+
 
   // Fechar a conexão
   client.stop();
@@ -602,7 +582,7 @@ void servidorWeb()
     //Tira a foto
     bool resposta_bool = tirarFotoServidor();
     
-    if(!resposta){
+    if(!resposta_bool){
       request->send_P(500, "text/plain", "Erro na captura da foto!");
     }
     
@@ -641,12 +621,16 @@ void servidorWeb()
 
       if(resposta == "400")
       {
-        resposta = "Rosto nao consta no banco de dados!"
+        resposta = "Rosto nao consta no banco de dados!";
 
-      }else if(resposta == "550")
+      }
+
+      else if(resposta == "550")
       {
         resposta = "Rosto nao detectado!";
-      }else 
+      } 
+      
+      else 
       {
         resposta = "Outro problema";
       }
@@ -701,15 +685,10 @@ void setup() {
   initLittleFS();
   connectWiFi();
 
-  asyncWs.onEvent(onWsEvent);
-  server.addHandler(&asyncWs);
-
   //Permite o acesso de clientes de diferentes origens a recursos específicos ao servidor
   DefaultHeaders::Instance().addHeader("Access-Control-Allow-Origin", "*");
 
   servidorWeb();
-
-  counter = 0;
 
 }
 
@@ -720,15 +699,9 @@ void loop() {
   }
 
   if (takeNewPhoto) {
-    tiraFoto();
-    takeNewPhoto = false;
-  } else if (counter % 100 == 0 && !asyncWs.getClients().isEmpty()) {
-    streamPhoto();
-  }
-  counter++;
-
-  asyncWs.cleanupClients();
-
+    
+  } 
+  
   delay(3);
 
 }
