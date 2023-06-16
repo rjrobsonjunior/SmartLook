@@ -40,7 +40,7 @@ router.get('/continuarProcessamento', async(req, res) =>{
 
   //Altera o valor da variavel que permite com que a requisição de processamento continuar
   pode_continuar = true;
-  console.log("\nVariavel de controle alterada! Reconhecimento facial iniciado!");
+  console.log("\nVariavel de controle alterada! Processo iniciado!");
   res.status(200).send('Variavel alterada com sucesso!');
 
   //Isso pode ser feito também atraves de comunicação webSocket entre o servidor e o site (que esta na rota GET /foto em upload)
