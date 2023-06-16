@@ -4,8 +4,9 @@ const multer = require('multer');
 const path = require('path');
 const jsQR = require('jsqr');
 const {createCanvas, loadImage } = require('canvas');
-const Jimp = require('jimp');
-//const QRCodeReader = require('qrcode-reader');
+const router = express.Router();
+
+const path_qr = './routes/uploads/qrCode.jpg';
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
@@ -25,9 +26,10 @@ router.post('/qrcode', upload.single('qrcode'), async (req, res) => {
   else{
     return res.status(200).send('Qr code salvo com sucesso!');
   }
+
 });
 
-/*
+
 async function processQRCode(imagePath) {
   console.log("Estou na processQRCode");
 
@@ -56,43 +58,48 @@ async function processQRCode(imagePath) {
     return null;
   }
 };
-*/   
 
-/*
-const processQRCode = async (imagePath) => {
-  try {
-    await Jimp.read(imagePath, (err, img) => {
-      if (err) {
-        console.error('Error reading image:', err);
-        return res.status(500).json({ error: 'Error reading image' });
-      }
-      const qrcode = new QRCodeReader();
+let pode_continuar;
+
+router.get('/continuarProcessamentoQR', async(req, res) =>{
+
+  //Altera o valor da variavel que permite com que a requisição de processamento continuar
+  pode_continuar = true;
+  console.log("\nVariavel de controle alterada! Processo iniciado!");
+  res.status(200).send('Variavel alterada com sucesso!');
+
+  //Isso pode ser feito também atraves de comunicação webSocket entre o servidor e o site (que esta na rota GET /foto em upload)
+
+}); 
+
+// Função para aguardar a mudança da variável global
+const aguardarMudancaVariavel = () => new Promise((resolve, reject) => {
+
+  const tempoMaximoEspera = 60000; // (60 segundos)
+  const intervaloVerificacao = 500; // (0,5 segundo)
+  let tempoDecorrido = 0;
+
+  const intervalo = setInterval(() => {
+
+    if (pode_continuar) {
+      clearInterval(intervalo);
+      console.log("resolvido!");
+      resolve();
       
-      qrcode.callback = function(err, value) {
-       if (err) {
-           console.error(err);
-       }
-       console.log(value.result);
-      };
-      qrcode.decode(img.bitmap);
+    }
+    else{
+      process.stdout.write(".");
+      tempoDecorrido += intervaloVerificacao;
 
-      const result = value.result;     
-
-      if (result) {
-        return result;
-      } 
-      else {
-        return null;
+      if (tempoDecorrido >= tempoMaximoEspera) {
+        clearInterval(intervalo);
+        reject(new Error("\nTempo máximo de espera atingido! O processamento vai continuar com a imagem atual!"));
       }
+    }
 
-    });
-  } catch (error) {
-    console.error('Erro ao processar o QR Code:', error);
-    return null;
-  }
-};
-*/
+  }, intervaloVerificacao); // Intervalo de verificação (500 milissegundos)
 
+});
 
 router.get('/qrcodeAnalise', async (req, res) => {
   
@@ -165,7 +172,6 @@ router.get('/qrcodeAnalise', async (req, res) => {
   });
 
 });
-
 
 router.get('/qrcode', async (req, res) => {
   const filePath = path.join(__dirname + '/public/qr.html');

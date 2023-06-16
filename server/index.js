@@ -6,6 +6,7 @@ const presentRoutes = require("./routes/presents.js");
 const exitRoutes = require("./routes/exit.js");
 const QRcodeRoutes = require("./routes/qrcode.js");
 const uploadRoutes = require("./routes/upload.js");
+const numberRoutes = require("./routes/entered.js");
 const cors = require("cors");
 const app = express();
 
@@ -21,4 +22,5 @@ app.use("/", presentRoutes);
 app.use("/", exitRoutes);
 app.use("/", QRcodeRoutes);
 app.use("/", uploadRoutes);
+app.use("/", numberRoutes);
 app.listen(8800);

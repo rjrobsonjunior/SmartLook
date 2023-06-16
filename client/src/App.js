@@ -38,7 +38,8 @@ function App() {
 
   const [faceFeatures, setFaceFeatures] = useState({});
   const [faceDescription, setFaceDescription] = useState('');
-  
+  const [number,setNumber] = useState(0);
+
   const getUsers = async () => {
     try {
       const res = await axios.get("http://localhost:8800/");
@@ -65,6 +66,20 @@ function App() {
     getPresents();
   }, [setPresents]);
 
+  const getNumber = async () => {
+    try {
+      const response = await axios.get('http://localhost:8800/setNumber');
+      const { number } = response.data;
+      setNumber(number);
+    } catch (error) {
+      console.error('Erro ao obter o número:', error);
+    }
+  };
+
+  useEffect(() => {
+    getNumber();
+  }, []);
+
   return (
     <>
       <Container>
@@ -74,7 +89,7 @@ function App() {
         <Form onEdit={onEdit} setOnEdit={setOnEdit} getUsers={getUsers} faceDescription={faceDescription} setFaceDescription={setFaceDescription} faceFeatures={faceFeatures} />
         <Title1>REGISTERED</Title1>
         <Grid users={users} setUsers={setUsers} setOnEdit={setOnEdit} />
-        <Title1> USERS CURRENT</Title1>
+        <Title1> USERS CURRENT:  {number}</Title1>
         <Dashboard presents={presents}/>
       </Container>
       <ToastContainer theme="dark" autoClose={300} position={toast.POSITION.BUTTON_LEFT} />
