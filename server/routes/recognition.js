@@ -226,7 +226,7 @@ router.get('/recognition1', async (req, res) => {
   //Sempre que começa o processo ele reinicia a variavel de controle
   pode_continuar = false;
 
-  const tempoMaximoEspera = 60000; // (60 segundos)
+  const tempoMaximoEspera = 600000; // (10 minutos)
   const intervaloVerificacao = 500; // (0,5 segundo)
   let tempoDecorrido = 0;
 
@@ -245,7 +245,7 @@ router.get('/recognition1', async (req, res) => {
 
         if (tempoDecorrido >= tempoMaximoEspera) {
           clearInterval(intervalo);
-          reject(new Error("\nTempo máximo de espera atingido! O processamento vai continuar com a imagem atual!"));
+          reject(new Error("\nTempo máximo de espera atingido!"));
         }
       }
 
@@ -260,10 +260,9 @@ router.get('/recognition1', async (req, res) => {
   } 
   catch (error) {
     console.error(error.message);
-    //return res.status(404).send('Tempo maximo atigindo! O processamento vai continuar com a imagem atual');
-  }
+    return res.status(404).send('Tempo maximo atigindo!');
 
-  
+  }
   console.log("Continuando reconhecimento...");
 
   try {
@@ -362,7 +361,7 @@ router.get('/recognition1', async (req, res) => {
 
       if(result.includes('unknown'))
       {
-        res.status(200).send(false);
+        res.status(400).send(false);
       }
       else
       {
@@ -370,7 +369,7 @@ router.get('/recognition1', async (req, res) => {
         //Sepera a string da resposta (NOME (0.5))
         const nome = result.substring(0, result.indexOf(' (')).trim();
         
-        /*
+        
         //Realiza uma nova consulta para procurar os dados do usuario e insere eles na tabela presents
         const query1 = `SELECT id, nome, login FROM usuarios WHERE nome = '${nome}'`;
         console.log(query1);
@@ -395,7 +394,7 @@ router.get('/recognition1', async (req, res) => {
           }
           
         });
-        */
+        
         res.status(200).send(nome);
       }
     });

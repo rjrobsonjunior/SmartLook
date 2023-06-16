@@ -163,109 +163,6 @@ bool changeFrameSize(framesize_t frameSize) {
 }
 
 
-void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
-  // TODO: this was all copied from an example and most of it can probably be deleted
-  if(type == WS_EVT_CONNECT){
-    Serial.printf("ws[%s][%u] connect\n\r", server->url(), client->id());
-    //client->printf("Hello Client %u :)", client->id());
-    //client->ping();
-  } else if(type == WS_EVT_DISCONNECT){
-    Serial.printf("ws[%s][%u] disconnect\n\r", server->url(), client->id());
-  } else if(type == WS_EVT_ERROR){
-    Serial.printf("ws[%s][%u] error(%u): %s\n\r", server->url(), client->id(), *((uint16_t*)arg), (char*)data);
-  } else if(type == WS_EVT_PONG){
-    Serial.printf("ws[%s][%u] pong[%u]: %s\n\r", server->url(), client->id(), len, (len)?(char*)data:"");
-  } else if(type == WS_EVT_DATA){
-    AwsFrameInfo * info = (AwsFrameInfo*)arg;
-    String msg = "";
-    if(info->final && info->index == 0 && info->len == len){
-      //the whole message is in a single frame and we got all of it's data
-      Serial.printf("ws[%s][%u] %s-message[%llu]: ", server->url(), client->id(), (info->opcode == WS_TEXT)?"text":"binary", info->len);
-
-      if(info->opcode == WS_TEXT){
-        for(size_t i=0; i < info->len; i++) {
-          msg += (char) data[i];
-        }
-      } else {
-        char buff[3];
-        for(size_t i=0; i < info->len; i++) {
-          sprintf(buff, "%02x ", (uint8_t) data[i]);
-          msg += buff ;
-        }
-      }
-      Serial.printf("%s\n\r",msg.c_str());
-
-      if(info->opcode == WS_TEXT) {
-        //client->text("I got your text message");
-      } else {
-        //client->binary("I got your binary message");
-      }
-    } else {
-      //message is comprised of multiple frames or the frame is split into multiple packets
-      if(info->index == 0){
-        if(info->num == 0)
-          Serial.printf("ws[%s][%u] %s-message start\n\r", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
-        Serial.printf("ws[%s][%u] frame[%u] start[%llu]\n\r", server->url(), client->id(), info->num, info->len);
-      }
-
-      Serial.printf("ws[%s][%u] frame[%u] %s[%llu - %llu]: ", server->url(), client->id(), info->num, (info->message_opcode == WS_TEXT)?"text":"binary", info->index, info->index + len);
-
-      if(info->opcode == WS_TEXT){
-        for(size_t i=0; i < len; i++) {
-          msg += (char) data[i];
-        }
-      } else {
-        char buff[3];
-        for(size_t i=0; i < len; i++) {
-          sprintf(buff, "%02x ", (uint8_t) data[i]);
-          msg += buff ;
-        }
-      }
-      Serial.printf("%s\n\r",msg.c_str());
-
-      if((info->index + len) == info->len){
-        Serial.printf("ws[%s][%u] frame[%u] end[%llu]\n\r", server->url(), client->id(), info->num, info->len);
-        if(info->final){
-          Serial.printf("ws[%s][%u] %s-message end\n\r", server->url(), client->id(), (info->message_opcode == WS_TEXT)?"text":"binary");
-          if(info->message_opcode == WS_TEXT) {
-            //client->text("I got your text message");
-          } else {
-            //client->binary("I got your binary message");
-          }
-        }
-      }
-    }
-  }
-}
-
-esp_err_t streamPhoto( void ) {
-  photo = NULL; // pointer
-
-  if (changeFrameSize(FRAMESIZE_VGA)) {
-    delay(1000); 
-  }
-
-  photo = esp_camera_fb_get();
-
-  if (!photo) {
-    Serial.println("Camera capture failed");
-    return ESP_OK;
-  }
-
-  if (photo->format == PIXFORMAT_JPEG) {
-    //Serial.println("fb->format is jpeg");
-  } else {
-    Serial.println("fb->format is NOT jpeg");
-  }
-
-  AsyncWebSocket::AsyncWebSocketClientLinkedList clients = asyncWs.getClients();
-  clients.front()->binary((uint8_t*)photo->buf, photo->len);
-
-  esp_camera_fb_return(photo);
-
-  return ESP_OK;
-}
-
 void desligarCamera()
 {
   esp_camera_deinit();
@@ -378,7 +275,7 @@ bool checarSalvamento(FS &fs)
 } 
 
 //Essa função tira a foto após 5s e salva no LittleFS
-void tiraFoto()
+void tiraFotoSPIFFS()
 {
   //Bool que indica se a foto foi salva corretamente
   bool ok = 0; 
@@ -425,260 +322,55 @@ void tiraFoto()
 
 }
 
-//(MULTER) Envia a foto para a aplicação node.js que ja compara para ver se existe no banco de dados
-String EnvioAnaliseIMGMulter()
-{
-  String resposta_servidor = "";
-
-  // Abre o arquivo de imagem salvo no LittleFS
-  File file = SPIFFS.open(FILE_PHOTO, FILE_READ);
-  
-  if (!file) {
-    Serial.println("Falha ao abrir o arquivo de imagem");
-    resposta_servidor = "Falha ao abrir o arquivo de imagem";
-  }
-
-  else{  
-    // Lê o conteúdo do arquivo e armazena em um buffer
-    size_t size = file.size();
-    uint8_t* buffer = (uint8_t*) malloc(size);
-    file.read(buffer, size);
-
-    WiFiClient client;
-    if (!client.connect(serverIP, 8800)) {
-      Serial.println("Falha ao conectar ao servidor");
-      resposta_servidor = "Falha ao conectar ao servidor";
-      return resposta_servidor;
-    }
-
-    // Gerar um valor de boundary único | Valor serve para identificar o começo e final da requisição
-    String boundary = "--------------------------" + String(millis());
-
-    // Criação do corpo da requisição
-    String requestBody = "--" + boundary + "\r\n";
-    requestBody += "Content-Disposition: form-data; name=\"imagem\"; filename=\"imagem.jpg\"\r\n";
-    requestBody += "Content-Type: image/jpeg\r\n";
-    requestBody += "\r\n";
-    requestBody += String((char*)buffer, size) + "\r\n";
-    requestBody += "--" + boundary + "--\r\n";
-
-    // Construir a requisição HTTP
-    String request = "POST /recognition HTTP/1.1\r\n";
-    request += "Host: " + String(serverIP) + "\r\n";
-    request += "Content-Type: multipart/form-data; boundary=" + boundary + "\r\n";
-    request += "Content-Length: " + String(requestBody.length()) + "\r\n";
-    request += "\r\n";
-    request += requestBody;
-
-    Serial.print("ESPCAM - REQUISIÇÃO | Enviando a imagem para o servidor: ");
-    Serial.println(serverUrlANALISE); 
-
-    // Envie a requisição HTTP
-    client.print(request);
-
-    int statusCode = 0;
-
-    // Aguarde a resposta do servidor
-    while (client.connected()) {
-
-      if (client.available()) {
-
-        // Leia e processe a resposta do servidor
-        String response = client.readString();
-        Serial.println("\nESPCAM - REQUISIÇÃO | Codigo completo da resposta da requisição:\n");
-        Serial.println(response);
-
-        // Extrair o código de resposta
-        int statusCodeStart = response.indexOf(' ') + 1;
-        int statusCodeEnd = response.indexOf(' ', statusCodeStart);
-        String statusCodeString = response.substring(statusCodeStart, statusCodeEnd);
-        statusCode = atoi(statusCodeString.c_str());
-
-        // Extrair a última linha da resposta
-        int lastNewlinePos = response.lastIndexOf('\n');
-        String lastLine = response.substring(lastNewlinePos + 1);
-
-        resposta_servidor = lastLine;
-        break;
-      }
-
-      esp_task_wdt_reset();
-
-    }
-
-    Serial.println("-----------------------------------------");
-    Serial.print("Codigo da requisição = ");
-    Serial.println(statusCode);
-    Serial.println("Resposta da ultima linha = " + resposta_servidor);
-    Serial.println("-----------------------------------------");
-
-    // Feche a conexão
-    client.stop();
-
-    // Verifique a resposta
-    if (statusCode == 200) {
-
-      // Processar a resposta do servidor
-      Serial.println();
-      Serial.println("Analise realizada com sucesso!");
-      Serial.println("Resposta do servidor: " + resposta_servidor);
-    }
-    else if(statusCode == 550)
-    {
-      // Lidar com a falha na comunicação
-      Serial.println("Rosto nao encontrado na imagem!");
-      resposta_servidor = "550";
-    }
-    else
-    {
-      Serial.println("REQUISIÇÃO | Falha na requisição POST!");
-    }
-
-    //Fecha o arquivo
-    file.close();
-
-    free(buffer);
-
-    Serial.println("REQUISIÇÃO | Resposta = " + resposta_servidor);
-  }
-
-  return resposta_servidor;
-}
-
-//(MULTER) Envia a foto para a aplicação node.js que ja compara para ver se existe no banco de dados
-String EnvioAnaliseQRCODEMulter()
-{
-  String resposta_servidor = "";
-
-  // Abre o arquivo de imagem salvo no LittleFS
-  File file = SPIFFS.open(FILE_PHOTO, FILE_READ);
-  
-  if (!file) {
-    Serial.println("Falha ao abrir o arquivo de imagem");
-    resposta_servidor = "Falha ao abrir o arquivo de imagem";
-  }
-
-  else{  
-    // Lê o conteúdo do arquivo e armazena em um buffer
-    size_t size = file.size();
-    uint8_t* buffer = (uint8_t*) malloc(size);
-    file.read(buffer, size);
-
-    WiFiClient client;
-    if (!client.connect(serverIP, 8800)) {
-      Serial.println("Falha ao conectar ao servidor");
-      resposta_servidor = "Falha ao conectar ao servidor";
-      return resposta_servidor;
-    }
-
-    // Gerar um valor de boundary único | Valor serve para identificar o começo e final da requisição
-    String boundary = "--------------------------" + String(millis());
-
-    // Criação do corpo da requisição
-    String requestBody = "--" + boundary + "\r\n";
-    requestBody += "Content-Disposition: form-data; name=\"qrcode\"; filename=\"imagem.jpg\"\r\n";
-    requestBody += "Content-Type: image/jpeg\r\n";
-    requestBody += "\r\n";
-    requestBody += String((char*)buffer, size) + "\r\n";
-    requestBody += "--" + boundary + "--\r\n";
-
-    // Construir a requisição HTTP
-    String request = "POST /qrCode HTTP/1.1\r\n";
-    request += "Host: " + String(serverIP) + "\r\n";
-    request += "Content-Type: multipart/form-data; boundary=" + boundary + "\r\n";
-    request += "Content-Length: " + String(requestBody.length()) + "\r\n";
-    request += "\r\n";
-    request += requestBody;
-
-    // Envie a requisição HTTP
-    client.print(request);
-
-    int statusCode = 0;
-
-    // Aguarde a resposta do servidor
-    while (client.connected()) {
-
-      if (client.available()) {
-
-        // Leia e processe a resposta do servidor
-        String response = client.readString();
-        Serial.println("\nREQUISIÇÃO | Codigo completo da resposta da requisição:\n");
-        Serial.println(response);
-
-        // Extrair o código de resposta
-        int statusCodeStart = response.indexOf(' ') + 1;
-        int statusCodeEnd = response.indexOf(' ', statusCodeStart);
-        String statusCodeString = response.substring(statusCodeStart, statusCodeEnd);
-        statusCode = atoi(statusCodeString.c_str());
-
-        // Extrair a última linha da resposta
-        int lastNewlinePos = response.lastIndexOf('\n');
-        String lastLine = response.substring(lastNewlinePos + 1);
-
-        resposta_servidor = lastLine;
-        break;
-      }
-
-      esp_task_wdt_reset();
-
-    }
-
-    Serial.println("-----------------------------------------");
-    Serial.print("Codigo da requisição = ");
-    Serial.println(statusCode);
-    Serial.println("Resposta da ultima linha = " + resposta_servidor);
-    Serial.println("-----------------------------------------");
-
-    // Feche a conexão
-    client.stop();
-
-    // Verifique a resposta
-    if (statusCode == 200) {
-
-      // Processar a resposta do servidor
-      Serial.println();
-      Serial.println("Analise realizada com sucesso!");
-      Serial.println("Resposta do servidor: " + resposta_servidor);
-    }
-    else if(statusCode == 450)
-    {
-      // Lidar com a falha na comunicação
-      Serial.println("QR Code nao identificado na imagem!");
-      resposta_servidor = "550";
-    }
-    else
-    {
-      Serial.println("REQUISIÇÃO | Falha na requisição POST!");
-    }
-
-    //Fecha o arquivo
-    file.close();
-
-    free(buffer);
-
-    Serial.println("REQUISIÇÃO | Resposta = " + resposta_servidor);
-  }
-
-  return resposta_servidor;
-}
-
-
+//Nessa função eu tiro a foto e mando para a aplicação web. 
 bool tirarFotoServidor()
 {
-  //Nessa função eu tiro a foto e mando para a aplicação web. 
-
   //A aplicação pega a foto e exibe, se o usuario quiser ele salva a foto e manda para a analise, caso nao, ele manda tirar outra foto
-
-  camera_fb_t* foto = esp_camera_fb_get();
   String resposta = "";
-  delay(500);
+  bool foto_foi_tirada = false;
+  int cont = 0;
 
+  //Repete por ate tres vezes a captura de imagem ate que de certo
+  do{
 
-  if(!foto)
-  {
-    Serial.println("Erro ao capturar a foto!");
-    return false;;
-  }
+    //Limite de tentatitivas para tirar foto
+    if(cont == 3)
+    {
+      return false;
+    }
+
+    delay(100);
+
+    //Contador de três segundos para tirar a foto
+    for(int i = 3; i>0; i--)
+    {
+      Serial.print("Foto sera tirada em ");
+      Serial.println(i);
+      digitalWrite(FLASH_GPIO_NUM, HIGH);
+      delay(300);
+      digitalWrite(FLASH_GPIO_NUM, LOW);
+      delay(700);
+    }
+    
+    delay(500);
+
+    camera_fb_t* foto = esp_camera_fb_get();
+  
+    if(!foto)
+    {
+      Serial.println("Erro ao capturar a foto!");
+      foto_foi_tirada = false;
+    }
+
+    else
+    {
+      Serial.println("Tirei uma foto!");
+      foto_foi_tirada = true;
+    }
+
+    cont++;
+
+  } while(!foto_foi_tirada)
 
   //Envio da foto via requisiçao POST
   WiFiClient client;
@@ -689,31 +381,6 @@ bool tirarFotoServidor()
 
   // Gerar um valor de boundary único | Valor serve para identificar o começo e final da requisição
   String boundary = "--------------------------" + String(millis());
-
-  /*
-  client.println("POST /foto HTTP/1.1");
-  client.println("Host: " + String(serverIP));
-  client.println("Content-Type: multipart/form-data; boundary=" + boundary);
-  client.println();
-
-  client.println(boundary);
-  client.println("Content-Disposition: form-data; name=\"imagem\"; filename=\"photo.jpg\"");
-  client.println("Content-Type: image/jpeg");
-  client.println();
-  
-
-  // Escreva os dados da imagem no corpo da requisição
-  client.write(foto->buf, foto->len);
-
-  client.println();
-  client.print(boundary);
-  client.println("--");
-
-  Serial.print("ESPCAM - tirarFotoServidor | Enviando a imagem para o servidor: ");
-  Serial.println(serverUrlANALISE); 
-
-  int statusCode = 0;
-  */
 
   // Criação do corpo da requisição
   String requestBody = "--" + boundary + "\r\n";
@@ -775,7 +442,7 @@ bool tirarFotoServidor()
   // Verifique a resposta
   if (statusCode == 200) {
 
-    Serial.println("Foto tirada e salvada com sucesso!");
+    Serial.println("Foto tirada e salvada no servidor com sucesso!");
   }
 
   else
@@ -785,6 +452,126 @@ bool tirarFotoServidor()
   }
 
   return true;
+}
+
+String analiseFaceServidor()
+{
+  // Conectar ao servidor
+  WiFiClient client;
+  
+  if (!client.connect("192.168.1.6", 8800)) 
+  {
+    Serial.println("Falha na conexão com o servidor");
+    return false;
+  }
+
+  Serial.println("Mandando o espcam analisar a foto...");
+
+  // Enviar a requisição GET
+  client.print("GET /recognition HTTP/1.1\r\n");
+  client.print("Host: 192.168.1.6\r\n");
+  client.print("Connection: close\r\n\r\n");
+
+  // Aguardar a resposta do servidor
+  while (client.connected() && !client.available()) {
+    delay(1);
+  }
+
+  // Ler a resposta do servidor
+  String resposta = "";
+  int statusCode = 0;
+
+  while (client.available()) {
+    resposta = client.readStringUntil('\n');
+    Serial.println("analiseFaceServidor | Resposta completa do servidor:");
+    Serial.println(client.readString());
+  }
+
+  // Extrair o código de resposta
+  int statusCodeStart = resposta.indexOf(' ') + 1;
+  int statusCodeEnd = resposta.indexOf(' ', statusCodeStart);
+  String statusCodeString = resposta.substring(statusCodeStart, statusCodeEnd);
+  statusCode = atoi(statusCodeString.c_str());
+  resposta = String(statusCode);
+  
+
+  // Analisar a resposta do servidor
+  if (statusCode == 200) 
+  {
+    // Face reconhecida
+    Serial.println("Face reconhecida!");
+
+    // Extrair a última linha da resposta (Nome da pessoa)
+    int lastNewlinePos = response.lastIndexOf('\n');
+    String lastLine = response.substring(lastNewlinePos + 1);
+
+    resposta = lastLine;
+    
+  } 
+
+  // Fechar a conexão
+  client.stop();
+  return resposta;
+} 
+
+String analiseQRCODE()
+{
+  // Conectar ao servidor
+  WiFiClient client;
+  
+  if (!client.connect("192.168.1.6", 8800)) 
+  {
+    Serial.println("Falha na conexão com o servidor");
+    return false;
+  }
+
+  // Enviar a requisição GET
+  client.print("GET /qrcodeAnalise HTTP/1.1\r\n");
+  client.print("Host: 192.168.1.6\r\n");
+  client.print("Connection: close\r\n\r\n");
+
+  // Aguardar a resposta do servidor
+  while (client.connected() && !client.available()) {
+    delay(1);
+  }
+
+  // Ler a resposta do servidor
+  String resposta = "";
+  int statusCode = 0;
+
+  while (client.available()) {
+    resposta = client.readStringUntil('\n');
+    Serial.println("analiseQRCODE | Resposta completa do servidor:");
+    Serial.println(client.readString());
+  }
+
+  // Extrair o código de resposta
+  int statusCodeStart = resposta.indexOf(' ') + 1;
+  int statusCodeEnd = resposta.indexOf(' ', statusCodeStart);
+  String statusCodeString = resposta.substring(statusCodeStart, statusCodeEnd);
+  statusCode = atoi(statusCodeString.c_str());
+  resposta = "false";
+  
+
+  // Analisar a resposta do servidor
+  if (statusCode == 200) 
+  {
+    // Face reconhecida
+    Serial.println("Qr code reconhecido!");
+
+    // Extrair a última linha da resposta (Nome da pessoa)
+    int lastNewlinePos = response.lastIndexOf('\n');
+    String lastLine = response.substring(lastNewlinePos + 1);
+
+    resposta = lastLine;
+    
+  }
+  
+
+  // Fechar a conexão
+  client.stop();
+  return resposta;
+
 }
 
 //Abre a foto salva no LittleFS do ESP32CAM
@@ -797,15 +584,31 @@ void servidorWeb()
 
   //Captura a foto alterando o bool
   server.on("/capture", HTTP_GET, [](AsyncWebServerRequest * request) {
-    takeNewPhoto = true;
-    request->send_P(200, "text/plain", "Foto Capturada!");
+    //takeNewPhoto = true;
+    bool resposta_bool = tirarFotoServidor();
+
+    if(resposta_bool){
+      request->send_P(200, "text/plain", "Foto Capturada!");
+    }
+
+    else{
+      request->send_P(200, "text/plain", "Foto Capturada!");
+    }
   });
 
   //Captura a foto atraves das funçõeos
-  server.on("/analisaFoto", HTTP_GET, [](AsyncWebServerRequest * request) {
+  server.on("/reconhecimentoFacial", HTTP_GET, [](AsyncWebServerRequest * request) {
 
+    //Tira a foto
+    bool resposta_bool = tirarFotoServidor();
+    
+    if(!resposta){
+      request->send_P(500, "text/plain", "Erro na captura da foto!");
+    }
+    
+    Serial.println("ESPCAM /reconhecimentoFacial | Foto capturada e enviada com sucesso!");
+    
     String resposta = "";
-    int cont = 0;
 
     /*
     //Repitir se a imagem nao conter uma face
@@ -825,41 +628,31 @@ void servidorWeb()
     while(resposta == "550" || cont < 3);
     */
 
-    resposta = EnvioAnaliseIMGMulter();
+    resposta = analiseFaceServidor();
 
-    //Ocorreu algum erro na analise da imagem
-    if(resposta != "true" && resposta != "false")
+    //Ocorreu algum erro na analise da imagem (Nao achou rosto ou outra coisa)
+    if(resposta != "400" && resposta != "500" && resposta != "550")
     {
-      request->send_P(500, "text/plain", resposta.c_str());
-      Serial.println("Erro: " + resposta);  
-    }
-    else{
       request->send_P(200, "text/plain", resposta.c_str());
       Serial.println(resposta);
-    }
-
-
-
-
-  });
-
-   //Captura a foto atraves das funçõeos
-  server.on("/analisaQR", HTTP_GET, [](AsyncWebServerRequest * request) {
-
-    String resposta = "";
-    int cont = 0;
-
-    resposta = EnvioAnaliseQRCODEMulter();
-
-    //Ocorreu algum erro na analise da imagem
-    if(resposta != "true" && resposta != "false")
-    {
-      request->send_P(500, "text/plain", resposta.c_str());
-      Serial.println("Erro: " + resposta);  
+  
     }
     else{
-      request->send_P(200, "text/plain", resposta.c_str());
-      Serial.println(resposta);
+
+      if(resposta == "400")
+      {
+        resposta = "Rosto nao consta no banco de dados!"
+
+      }else if(resposta == "550")
+      {
+        resposta = "Rosto nao detectado!";
+      }else 
+      {
+        resposta = "Outro problema";
+      }
+
+      request->send_P(500, "text/plain", resposta.c_str());
+      Serial.println("Erro: " + resposta);
     }
 
   });
@@ -882,78 +675,11 @@ void servidorWeb()
   }); 
 
 
-
   //Mostra a foto na memoria LittleFS do ESPCAM
   server.on("/saved-photo", [](AsyncWebServerRequest * request) {
     request->send(SPIFFS, FILE_PHOTO, "image/jpg", false);
   });
 
-  server.on("/stream", HTTP_GET, [](AsyncWebServerRequest * request) {
-      
-      return;
-      Serial.println("Lets stream it up!");
-
-      camera_fb_t * fb = NULL;
-      size_t fb_buffer_sent = 0;
-
-      AsyncWebServerResponse *response = request->beginChunkedResponse(_STREAM_CONTENT_TYPE, [fb, fb_buffer_sent](uint8_t *buffer, size_t maxLen, size_t index) mutable -> size_t {
-        uint8_t *end_of_buffer = buffer;
-        size_t remaining_space = maxLen;
-
-        if (!fb) {
-          fb = esp_camera_fb_get();
-          if (!fb) {
-            Serial.println("Camera capture failed");
-            return 0;
-          }
-
-          //res = httpd_resp_send_chunk(req, _STREAM_BOUNDARY, strlen(_STREAM_BOUNDARY));
-          size_t len = snprintf((char *)end_of_buffer, remaining_space, _STREAM_BOUNDARY);
-          end_of_buffer += len;
-          remaining_space -= len;
-
-          size_t hlen = snprintf((char *)end_of_buffer, remaining_space, _STREAM_PART, fb->len);
-          end_of_buffer += hlen;
-          remaining_space -= hlen;
-
-        }
-
-        //res = httpd_resp_send_chunk(req, (const char *)fb->buf, fb->len);
-        //TODO: only send max len and later finish sending the buffer
-        size_t fb_bytes_to_send = min(remaining_space, fb->len-fb_buffer_sent);
-        memcpy((char *)end_of_buffer, fb->buf+fb_buffer_sent, fb_bytes_to_send);
-        end_of_buffer += fb_bytes_to_send;
-        remaining_space -= fb_bytes_to_send;
-        fb_buffer_sent += fb_bytes_to_send;
-
-        if(fb && fb_buffer_sent == fb->len){
-          esp_camera_fb_return(fb);
-          fb = NULL;
-          fb_buffer_sent = 0;
-        }
-
-        return maxLen - remaining_space;
-      });
-
-      response->addHeader("Access-Control-Allow-Origin", "*");
-      request->send(response);
-  });
-
-  // Rota para exibir as mensagens do buffer serial
-  server.on("/log", HTTP_GET, [](AsyncWebServerRequest *request){
-    String html = "<html><body><h1>Messages:</h1><ul>";
-    html += messages;
-    html += "</ul></body></html>";
-    request->send(200, "text/html", html);
-  });
-
-  server.on("/log", HTTP_POST, [](AsyncWebServerRequest *request){
-    if (request->hasParam("message")) {
-      AsyncWebParameter* param = request->getParam("message");  
-      messages += "<li>" + param->value() + "</li>";
-    }
-    request->send(200, "text/plain", "Message received");
-  });
 
   // Start server
   server.begin();

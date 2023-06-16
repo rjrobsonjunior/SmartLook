@@ -141,13 +141,13 @@ router.get('/qrcodeAnalise', async (req, res) => {
     if (err) throw err;
 
     if (result.length === 0) {
-      res.status(401).send('Login inválido!');
+      res.status(500).send('Login inválido!');
     } 
 
     else {
       if(senha1 == result[0].senha)
       {
-        res.status(200).send(`true`);
+        
         const usuario = result[0];
         
         const sql = 'INSERT INTO presents (id, nome, login) VALUES (?, ?, ?)';
@@ -161,10 +161,12 @@ router.get('/qrcodeAnalise', async (req, res) => {
             console.log('Dados inseridos com sucesso');
           }
         });
+
+        res.status(200).send(usuario.nome);
       }
       else
       {
-        res.status(200).send(`false`);
+        res.status(400).send(`false`);
       }
     }
   });

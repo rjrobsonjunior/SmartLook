@@ -69,4 +69,5 @@ String rotaFace = "/analisaFoto";
 // Variáveis para armazenar o nome de usuário e a senha
 String login = "";
 String senha = "";
+String nome_usuario = "";
 
