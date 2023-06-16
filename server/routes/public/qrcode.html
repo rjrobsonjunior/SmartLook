@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Imagem ESPCAM</title>
+    <link rel="stylesheet" type="text/css" href="assets/style.css">
+</head>
+<body>
+    <header>
+        <h1>Fechadura Modular - Reconhecimento Facial</h1>
+    </header>
+
+    <div class="title">
+        <h2>Imagem capturada pelo ESPCAM</h2>
+    </div>
+
+    <div class="image-container">
+        <a href="assets/qrcode/img.jpg" download>
+            <img src="assets/qrcode/img.jpg" alt="Imagem">
+        </a>
+    </div>
+
+    <div class="date-overlay">
+        Foto tirada em: <span id="data-modificacao"></span>
+    </div>
+
+    <div class="button-container">
+        <button onclick="tirarFoto()">Tirar uma nova foto</button>
+        <button onclick="enviarParaAnalise()">Enviar para análise</button>
+    </div>
+
+    <div class="popup-container" id="popupContainer">
+        <div class="popup">
+            <h3 id="popupText">Imagem enviada com sucesso!</h3>
+            <button onclick="fecharPopup()">Fechar</button>
+        </div>
+    </div>
+
+    <div class="counter-container" id="counterContainer">
+        <div class="counter" id="counter">5</div>
+        <div class="counter-text">segundos</div>
+    </div>
+    
+
+    <script src="assets/qrcode.js"></script>
+</body>
+</html>
