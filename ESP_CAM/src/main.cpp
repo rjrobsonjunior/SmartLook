@@ -68,34 +68,6 @@ const char index_html[] PROGMEM = R"rawliteral(
 </script>
 </html>)rawliteral";
 
-//Função que imprime no monitor serial e no /log o servidor web a mensagemm
-void Aprint(String mensagem)
-{
-  Serial.println(mensagem);
-
-  //Requisição POST para imprimir na pagina web
-  HTTPClient req;
-  String url = "http://192.168.1.19/log";
-  mensagem = "message="+mensagem;
-  req.begin(url);
-  req.addHeader("Content-Type", "application/x-www-form-urlencoded");
-  req.addHeader("Content-Length", String(mensagem.length()));
-
-  int httpResponseCode = req.POST(mensagem);
-
-
-  if (httpResponseCode > 0) {
-    Serial.print("void Aprint() | HTTP Response code: ");
-    Serial.println(httpResponseCode);
-  } 
-  else {
-    Serial.print("void Aprint() | Error on HTTP request: ");
-    Serial.println(httpResponseCode);
-  }
-  
-  req.end();
-}
-
 void initCamera()
 {
   // OV2640 camera module
@@ -213,7 +185,12 @@ void connectWiFi()
   serverESP = ipESP.toString();
 
   Serial.println(ipESP);
+  Serial.print("Endereço MAC: ");
+  Serial.println(WiFi.macAddress()); 
+  
+  
 }
+
 
 // Função para salvar a imagem no LittleFS
 void salvarImagemLITTLEFS(camera_fb_t* img) 

@@ -29,7 +29,6 @@ void connect_wifi()
   Serial.println(WiFi.localIP());
   Serial.print("Endereço MAC: ");
   Serial.println(WiFi.macAddress());
-
   Serial.println("Conectado à rede WiFi");
 }
 
@@ -435,6 +434,42 @@ int contagem_pessoas()
   }
 }
 
+
+//Envia uma requisição post com a quantidade de pessoas que entraram
+void quantasPessoasEntraram()
+{
+  // Crie um objeto HTTPClient
+  HTTPClient client;
+  client.begin(url_registroPessoas);
+  client.addHeader("Content-Type", "application/json");
+
+  // Crie um objeto JSON com os dados de login e senha
+  StaticJsonDocument<200> jsonDoc;
+  jsonDoc["pessoas"] = pessoas_contagem;
+
+  // Converta o objeto JSON para uma string
+  String jsonData;
+  serializeJson(jsonDoc, jsonData);
+
+  int httpResponseCode = client.POST(jsonData);
+  String response = client.getString();
+
+  if (httpResponseCode == 200) 
+  {
+    Serial.println("quantasPessoasEntraram | Enviado com sucesso!");
+    nome_usuario = response;
+
+  } 
+
+  else 
+  {
+    Serial.println("quantasPessoasEntraram | Erro na conexão com o servidor!");
+    Serial.println("HttpCode = " + httpResponseCode);
+  }
+
+  client.end();
+}
+
 void abrir_fechadura()
 {
 
@@ -512,41 +547,6 @@ void abrir_fechadura()
   quantasPessoasEntraram();
   
 
-}
-
-//Envia uma requisição post com a quantidade de pessoas que entraram
-void quantasPessoasEntraram()
-{
-  // Crie um objeto HTTPClient
-  HTTPClient client;
-  client.begin(url_registroPessoas);
-  client.addHeader("Content-Type", "application/json");
-
-  // Crie um objeto JSON com os dados de login e senha
-  StaticJsonDocument<200> jsonDoc;
-  jsonDoc["pessoas"] = pessoas_contagem;
-
-  // Converta o objeto JSON para uma string
-  String jsonData;
-  serializeJson(jsonDoc, jsonData);
-
-  int httpResponseCode = client.POST(jsonData);
-  String response = client.getString();
-
-  if (httpResponseCode == 200) 
-  {
-    Serial.println("quantasPessoasEntraram | Enviado com sucesso!");
-    nome_usuario = response;
-
-  } 
-
-  else 
-  {
-    Serial.println("quantasPessoasEntraram | Erro na conexão com o servidor!");
-    Serial.println("HttpCode = " + httpResponseCode);
-  }
-
-  client.end();
 }
 
 void setup() {
@@ -714,7 +714,7 @@ void loop()
 
   }
   
-  
+  /*
   if(digitalRead(FECHADURA_PIN) == LOW)
   {
     //Pessoa apertou o botao para sair
@@ -757,7 +757,7 @@ void loop()
     display.display();
     delay(1000);
   }
-  
+  */
   
 }
 

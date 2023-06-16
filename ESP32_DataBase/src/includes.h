@@ -58,12 +58,12 @@ IPAddress gateway(192, 168, 144, 139);   // Endereço do gateway
 IPAddress subnet(255, 255, 255, 0);  // Máscara de sub-rede
 
 // Rotas importantes
-String url_tirarFoto = "http://192.168.1.11/capture";
-const char* ip_espCAM = "192.168.1.11";
-const char* ip_Servidor = "192.168.1.6";
-String url_analiseLogin = "http://192.168.1.3:8800/login";
-String url_analiseCredenciaisSaida = "http://192.168.1.3:8800/exit";
-String url_registroPessoas = "http://192.168.1.3:3000/pessoas";
+String url_tirarFoto = "http://192.168.0.8/capture";
+const char* ip_espCAM = "192.168.0.8";
+const char* ip_Servidor = "192.168.0.6";
+String url_analiseLogin = "http://192.168.0.6:8800/login";
+String url_analiseCredenciaisSaida = "http://192.168.0.6:8800/exit";
+String url_registroPessoas = "http://192.168.0.6:8800/pessoas";
 
 String rotaFoto = "/capture";
 String rotaFace = "/analisaFoto";
