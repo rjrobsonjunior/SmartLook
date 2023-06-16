@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>QR Code - Upload de Imagem</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial, sans-serif;
+            background-color: #f1f1f1;
+        }
+
+        header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-color: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(10px);
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        header h1 {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        main {
+            margin-top: 100px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        form {
+            margin: 0px;
+            padding: 50px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            background-color: #f7f7f7;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .custom-file-label {
+            display: inline-block;
+            background-color: #b2b0b3;
+            color: white;
+            padding: 12px 40px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            z-index: 1;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            transition: transform 0.4s ease;
+        }
+
+        .custom-file-label:hover {
+            transform: scale(1.05);
+        }
+
+        .popup-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .popup {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .popup p {
+            margin: 0;
+        }
+
+        .popup-button {
+            background-color: #864caf;
+            color: white;
+            padding: 12px 40px;
+            border: none;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.4s ease;
+        }
+
+        .popup-button:hover {
+            transform: scale(1.1);
+        }
+
+        .preview-image {
+            max-width: 800px;
+            overflow: hidden;
+            border-radius: 8px;
+            margin-top: 70px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        #preview {
+            width: 100%;
+            height: 100%;
+            object-fit: auto;
+
+        }
+
+        .container {
+            position: fixed;
+            bottom: 20px;
+            transform: translateX(-50%);
+            left: 50%;
+            padding: 8px;
+            text-align: center;
+            width: auto;
+            white-space: nowrap;
+
+        }
+    </style>
+</head>
+
+<body>
+<header>
+    <h1>Fechadura Modular - QR Code</h1>
+</header>
+<main>
+    <form id="upload-form" enctype="multipart/form-data">
+        <label for="image-input" class="custom-file-label">Selecionar Imagem</label>
+        <input type="file" class="custom-file-input" id="image-input" accept="image/*" required>
+    </form>
+    
+    <button type="button" onclick="showPopup()" class="popup-button">Enviar</button>
+    
+    <div class="preview-image">
+        <img id="preview" src="#" alt="Preview da Imagem" style="display: none;">
+    </div>
+
+    <div class="container">
+        <p>O QR Code enviado será analisada pelo servidor e conferido se as credenciais estão corretas. Voce poderá ver a resposta no Display</p>
+    </div>
+
+</main>
+
+<div class="popup-container" id="popup-container">
+    <div class="popup">
+        <p id="popup-message"></p>
+        <button class="popup-button" onclick="hidePopup()">Fechar</button>
+    </div>
+</div>
+
+<script>
+    const fileInput = document.getElementById('image-input');
+    const previewImage = document.getElementById('preview');
+    const popupContainer = document.getElementById('popup-container');
+    const popupMessage = document.getElementById('popup-message');
+
+    fileInput.addEventListener('change', function(event) {
+        const file = event.target.files[0];
+        const reader = new FileReader();
+
+        reader.onload = function(e) {
+            previewImage.src = e.target.result;
+            previewImage.style.display = 'block';
+        };
+
+        reader.readAsDataURL(file);
+    });
+
+    function showPopup() {
+        popupContainer.style.display = 'flex';
+        sendImage();
+    }
+
+    function hidePopup() {
+        popupContainer.style.display = 'none';
+    }
+
+    function sendImage() {
+        const imageFile = fileInput.files[0];
+
+        if (imageFile) {
+            const formData = new FormData();
+            formData.append('qrcode', imageFile);
+
+            fetch('/qrcode', {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => {
+                    if (response.ok) {
+                        popupMessage.textContent = 'Imagem enviada e analisada com sucesso!';
+                        
+                        // Envia a requisição GET para /continuarProcessamento
+                        fetch('/continuarProcessamentoQR', {
+                            method: 'GET'
+                        })
+                            .then(response => {
+                                if (response.ok) {
+                                    console.log('Requisicao enviada com sucesso!');
+                                } else {
+                                    // Resto do código
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Erro:', error);
+                            });
+                    
+                    } else {
+                        popupMessage.textContent = 'Erro ao enviar a imagem.';
+                    }
+                })
+                .catch(error => {
+                    console.error('Erro:', error);
+                    popupMessage.textContent = 'Erro ao enviar a imagem.';
+                })
+                .finally(() => {
+                    popupContainer.style.display = 'flex';
+                });
+        } else {
+            popupMessage.textContent = 'Nenhuma imagem selecionada.';
+            popupContainer.style.display = 'flex';
+        }
+    }
+</script>
+</body>
+</html>

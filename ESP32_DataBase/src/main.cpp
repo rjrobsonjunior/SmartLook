@@ -291,7 +291,7 @@ bool checarFaceDB()
   Serial.println("Mandando o espcam analisar a foto...");
 
   // Enviar a requisição GET
-  client.print("GET /analisaFoto HTTP/1.1\r\n");
+  client.print("GET /reconhecimentoFacial HTTP/1.1\r\n");
   client.print("Host: 192.168.1.11\r\n");
   client.print("Connection: close\r\n\r\n");
 
@@ -309,29 +309,25 @@ bool checarFaceDB()
     Serial.println(client.readString());
   }
 
+  // Extrair a última linha da resposta 
+  int lastNewlinePos = response.lastIndexOf('\n');
+  String lastLine = response.substring(lastNewlinePos + 1);
+
   // Analisar a resposta do servidor
   if (resposta.startsWith("HTTP/1.1 200 OK")) 
   {
-    // Sucesso na requisição
-    if (resposta.endsWith("true")) 
-    {
-      client.stop();
-
-      // Face reconhecida
-      Serial.println("Face reconhecida!");
-      return true;
-    } 
-    else 
-    {
-      // Face não reconhecida
-      Serial.println("Face não reconhecida!");
-    }
+    client.stop();
+    // Face reconhecida
+    Serial.println("Face reconhecida!");
+    nome_usuario = lastLine;
+    return true;
   } 
+   
   else 
   {
     // Outro problema
     Serial.println("Outro problema");
-    Serial.println("Erro: " + client.readStringUntil('\n'));
+    Serial.println("Erro: " + lastLine);
   }
 
   // Fechar a conexão
@@ -344,7 +340,7 @@ bool checarQrCodeDB()
   // Conectar ao servidor
   WiFiClient client;
   
-  if (!client.connect(ip_espCAM, 80)) 
+  if (!client.connect("192.168.1.6", 8800)) 
   {
     Serial.println("Falha na conexão com o servidor");
     return false;
@@ -352,7 +348,7 @@ bool checarQrCodeDB()
 
   // Enviar a requisição GET
   client.print("GET /analisaQR HTTP/1.1\r\n");
-  client.print("Host: 192.168.1.11\r\n");
+  client.print("Host: 192.168.1.6\r\n");
   client.print("Connection: close\r\n\r\n");
 
   // Aguardar a resposta do servidor
@@ -369,29 +365,24 @@ bool checarQrCodeDB()
     Serial.println(client.readString());
   }
 
+  // Extrair a última linha da resposta 
+  int lastNewlinePos = response.lastIndexOf('\n');
+  String lastLine = response.substring(lastNewlinePos + 1);
+
   // Analisar a resposta do servidor
   if (resposta.startsWith("HTTP/1.1 200 OK")) 
   {
-    // Sucesso na requisição
-    if (resposta.endsWith("true")) 
-    {
-      client.stop();
-
-      // Face reconhecida
-      Serial.println("Qr Code reconhecido!");
-      return true;
-    } 
-    else 
-    {
-      // Face não reconhecida
-      Serial.println("Qr Code não reconhecido!");
-    }
+    client.stop();
+    // Face reconhecida
+    Serial.println("Qr Code reconhecido!");
+    nome_usuario = lastLine;
+    return true;
   } 
+   
   else 
   {
     // Outro problema
-    Serial.println("Outro problema");
-    Serial.println("Erro: " + client.readStringUntil('\n'));
+    Serial.println("Usuario nao encontrado");
   }
 
   // Fechar a conexão
@@ -555,7 +546,7 @@ void loop()
     {
       Serial.println("Acesso Liberado! Bem vindo " + respostaConsulta);
       display_acesso_liberado(respostaConsulta);
-      //abrir_fechadura();
+      abrir_fechadura();
     }
 
     else
@@ -576,16 +567,12 @@ void loop()
     display.println("--- R. facial ---");
     display.display();
 
-    //Mandar ESPCAM tirar a foto
-    //tirarFoto();
-    //delay(5000);
-
     //Mando o servidor analisar a foto
     if(checarFaceDB())
     {
-      Serial.println("Acesso Liberado!!");
-      display_acesso_liberado();
-      //abrir_fechadura();
+      Serial.println("Acesso Liberado! Bem vindo " + nome_usuario);
+      display_acesso_liberado(nome_usuario);
+      abrir_fechadura();
 
     }
     else
@@ -607,15 +594,13 @@ void loop()
     display.println("--- QR Code ---");
     display.display();
 
-    //Mandar ESPCAM tirar a foto
-    tirarFoto();
 
     //Mando o servidor analisar a foto
-    if(checarFaceDB())
+    if(checarQrCodeDB())
     {
-      Serial.println("Acesso Liberado!!");
-      display_acesso_liberado();
-      //abrir_fechadura();
+      Serial.println("Acesso Liberado! Bem vindo " + nome_usuario);
+      display_acesso_liberado(nome_usuario);
+      abrir_fechadura();
 
     }
     else
