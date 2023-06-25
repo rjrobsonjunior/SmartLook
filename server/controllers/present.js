@@ -18,7 +18,11 @@ const addUser = (req, res) => {
         
   db.query(sql, values, (err, result) => {
     if (err) {
-      console.error('Erro ao inserir os dados:', err);
+      if (err.code === 'ER_DUP_ENTRY') {
+        console.error('Erro ao inserir os dados na lista de presents! O usuário já foi inserido anteriormente.');
+      } else {
+        console.error('Erro ao inserir os dados na lista de presents!', err);
+      }
     }
     else{
       console.log('Dados inseridos com sucesso');
@@ -28,6 +32,7 @@ const addUser = (req, res) => {
 
 const deleteUser = (req, res) => {
   const q = "DELETE FROM presents WHERE `id` = ?";
+  console.log("Estou no delete user!");
 
   db.query(q, [req.params.id], (err) => {
     if (err) return res.status(400).json(err);

@@ -44,7 +44,7 @@ function tirarFoto() {
         }
     };
 
-    xhr.open("GET", "http://192.168.1.11/capture", true);
+    xhr.open("GET", "http://192.168.0.8/capture", true);
     xhr.send();
 
     
@@ -56,7 +56,7 @@ function enviarParaAnalise() {
     //Essa mudança permite com que a requisição continue
 
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/continuarProcessamento', true);
+    xhr.open('GET', '/continuarProcessamentoFace', true);
 
     xhr.onload = function() {
     if (xhr.status >= 200 && xhr.status < 400) {

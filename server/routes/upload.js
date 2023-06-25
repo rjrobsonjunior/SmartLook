@@ -6,8 +6,9 @@ const moment = require('moment-timezone');
 
 const router = express.Router();
 const path_imagem = './routes/public/assets/fotos';
+const path_qr = './routes/uploads';
 
-const storage = multer.diskStorage({
+const salvarFoto = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, path_imagem)
   },
@@ -16,12 +17,20 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage: storage });
+const salvarQr = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, path_qr)
+  },
+  filename: function (req, file, cb) {
+    cb(null, 'qrCode.jpg')
+  }
+});
 
-router.post('/foto', upload.single('imagem'), function (req, res) {
+const uploadFoto = multer({ storage: salvarFoto });
+const uploadQr = multer({ storage: salvarQr });
+
+router.post('/foto', uploadFoto.single('imagem'), function (req, res) {
   
-  //console.log(req); 
-
   if (req.file) {
     res.send("Single file uploaded successfully");
   } 
@@ -30,7 +39,19 @@ router.post('/foto', upload.single('imagem'), function (req, res) {
   }
 
   
-})
+});
+
+router.post('/qr', uploadQr.single('qr'), function (req, res) {
+  
+  if (req.file) {
+    res.send("Single file uploaded successfully");
+  } 
+  else {
+    res.status(400).send("Please upload a valid image");
+  }
+
+  
+});
 
 router.get('/foto', (req, res) => {
   const filePath = path.join(__dirname + '/public/foto.html');

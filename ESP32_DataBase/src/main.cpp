@@ -82,6 +82,14 @@ void start_display()
 
 }
 
+void display_mensagem_meio(String msg)
+{
+  display.clearDisplay();
+  setCursorMeio();
+  display.println(msg);
+  display.display();
+}
+
 void display_acesso_liberado(String usuario)
 {
     display.clearDisplay();
@@ -230,45 +238,56 @@ bool checarLoginDB()
     return true;
 
   } 
-  else if(httpResponseCode == 400)
-  {
-    Serial.println("checarLoginDB | Senha invalida!");
-  }
 
   else 
   {
-    Serial.println("checarLoginDB | Erro na conexão com o servidor!");
-    Serial.println("HttpCode = " + httpResponseCode);
+    Serial.println("checarLoginDB | HttpCode = " + httpResponseCode);
+    Serial.println("checarLoginDB | Erro: " + response);
   }
 
-  return false;
   client.end();
+  return false;
     
 }
 
 //Faz a checagem se o login existe no Banco de Dados
 bool checarCredenciaisSaida()
 {
+  Serial.println("");
   Serial.println("--- Consulta de Acesso ---");
 
   // Crie um objeto HTTPClient
   HTTPClient client;
   client.begin(url_analiseCredenciaisSaida);
-  client.addHeader("Content-Type", "application/x-www-form-urlencoded");
-  String postData = "login=" + login + "&senha=" + senha;
-  int httpResponseCode = client.POST(postData);
+  client.addHeader("Content-Type", "application/json");
+
+  // Crie um objeto JSON com os dados de login e senha
+  StaticJsonDocument<200> jsonDoc;
+  jsonDoc["login"] = login;
+  jsonDoc["senha"] = senha;
+
+  // Converta o objeto JSON para uma string
+  String jsonData;
+  serializeJson(jsonDoc, jsonData);
+
+  int httpResponseCode = client.POST(jsonData);
+  String response = client.getString();
 
   if (httpResponseCode == 200) 
   { 
     Serial.println("Usario deletado da lista de presentes!");
+    client.end();
     return true;
   } 
 
   else 
   {
     Serial.println("checarCredenciaisSaida | Erro na conexão com o servidor!");
-    Serial.println("HttpCode = " + httpResponseCode);
+    Serial.println("HttpCode = ");
+    Serial.println(httpResponseCode);
   }
+
+  Serial.println("Resposta = " + response);
 
   return false;
   client.end();
@@ -280,20 +299,25 @@ bool checarFaceDB()
   // Conectar ao servidor
   WiFiClient client;
   
-  if (!client.connect(ip_espCAM, 80)) 
+  if (!client.connect(ip_Servidor, 8800)) 
   {
     Serial.println("Falha na conexão com o servidor");
     return false;
   }
 
-  Serial.println("Mandando o espcam analisar a foto...");
-
   // Enviar a requisição GET
-  client.print("GET /reconhecimentoFacial HTTP/1.1\r\n");
+  client.print("GET /recognition HTTP/1.1\r\n");
   client.print("Host: ");
-  client.print(ip_espCAM);
+  client.print(ip_Servidor);
   client.print("\r\n");
   client.print("Connection: close\r\n\r\n");
+
+  display.clearDisplay();
+  display.setCursor(0, 8); // Define a posição do cursor no meio do display
+  display.println("Confira a foto: ");
+  display.setCursor(0, 24); // Define a posição do cursor no meio do display
+  display.println("localhost:8800/foto");
+  display.display();
 
   // Aguardar a resposta do servidor
   while (client.connected() && !client.available()) {
@@ -304,9 +328,7 @@ bool checarFaceDB()
   String resposta = "";
 
   while (client.available()) {
-    resposta = client.readStringUntil('\n');
-    Serial.println("Resposta completa do servidor:");
-    Serial.println(client.readString());
+    resposta = client.readString();
   }
 
   // Extrair a última linha da resposta 
@@ -326,8 +348,14 @@ bool checarFaceDB()
   else 
   {
     // Outro problema
-    Serial.println("Outro problema");
-    Serial.println("Erro: " + lastLine);
+    Serial.println("Face nao foi reconhecida");
+
+    Serial.println("Resposta completa do servidor:");
+    Serial.println(resposta);
+
+    Serial.println("Erro especifico: " + lastLine);
+
+    display_mensagem_meio(lastLine);
   }
 
   // Fechar a conexão
@@ -346,17 +374,94 @@ bool checarQrCodeDB()
     return false;
   }
 
-  /*
   // Enviar a requisição GET
-  client.print("GET /analisaQR HTTP/1.1\r\n");
-  client.print("Host: 192.168.1.6\r\n");
-  client.print("Connection: close\r\n\r\n");
-  */
-
-  // Enviar a requisição GET
-  client.print("GET /analisaQR HTTP/1.1\r\n");
+  client.print("GET /analiseQR HTTP/1.1\r\n");
   client.print("Host: ");
   client.print(ip_Servidor);
+  client.print("\r\n");
+  client.print("Connection: close\r\n\r\n");
+
+  display.clearDisplay();
+  display.setCursor(0, 8); // Define a posição do cursor no meio do display
+  display.println("Upload do QR Code: ");
+  display.setCursor(0, 24); // Define a posição do cursor no meio do display
+  display.println("localhost:8800/qrcode");
+  display.display();
+
+  // Aguardar a resposta do servidor
+  while (client.connected() && !client.available()) {
+    delay(1);
+    
+  }
+
+  // Ler a resposta do servidor
+  String resposta = "";
+
+  while (client.available()) {
+    resposta = client.readString();
+  }
+
+  // Extrair a última linha da resposta 
+  int lastNewlinePos = resposta.lastIndexOf('\n');
+  String lastLine = resposta.substring(lastNewlinePos + 1);
+
+  // Analisar a resposta do servidor
+  if (resposta.startsWith("HTTP/1.1 200 OK")) 
+  {
+    client.stop();
+    Serial.println("Qr Code reconhecido!");
+    nome_usuario = lastLine;
+    return true;
+  } 
+   
+  else 
+  {
+    // Outro problema
+    Serial.println("Resposta completa do servidor:");
+    Serial.println(client.readString());
+  }
+
+  // Fechar a conexão
+  client.stop();
+  return false;
+}
+
+//Envia uma instrução para o ESPCAM tirar a foto
+void tirarFoto()
+{
+  /*
+  //GET - WebServer do ESPCAM
+  Serial.println("URL = " + url_tirarFoto);
+  
+  HTTPClient http;
+  http.begin(url_tirarFoto);
+  int httpCode = http.GET();
+
+  delay(5000);
+
+  if (httpCode == HTTP_CODE_OK) {
+    Serial.println("Requisição enviada com sucesso. Foto tirada!");
+  } else {
+    Serial.printf("Erro ao enviar a requisição: %d\n", httpCode);
+  }
+
+  http.end();
+
+  */
+
+  // Conectar ao servidor
+  WiFiClient client;
+  
+  if (!client.connect(ip_espCAM, 80)) 
+  {
+    Serial.println("Falha na conexão com o servidor");
+    return;
+  }
+
+  // Enviar a requisição GET
+  client.print("GET /capture HTTP/1.1\r\n");
+  client.print("Host: ");
+  client.print(ip_espCAM);
   client.print("\r\n");
   client.print("Connection: close\r\n\r\n");
 
@@ -364,14 +469,11 @@ bool checarQrCodeDB()
   while (client.connected() && !client.available()) {
     delay(1);
   }
-
   // Ler a resposta do servidor
   String resposta = "";
 
   while (client.available()) {
-    resposta = client.readStringUntil('\n');
-    Serial.println("Resposta completa do servidor:");
-    Serial.println(client.readString());
+    resposta = client.readString();
   }
 
   // Extrair a última linha da resposta 
@@ -383,40 +485,24 @@ bool checarQrCodeDB()
   {
     client.stop();
     // Face reconhecida
-    Serial.println("Qr Code reconhecido!");
-    nome_usuario = lastLine;
-    return true;
+    Serial.println("Foto capturada!");
   } 
    
   else 
   {
     // Outro problema
-    Serial.println("Usuario nao encontrado");
+    Serial.println("ERRO na captura da foto");
+
+    Serial.println("Resposta completa do servidor:");
+    Serial.println(resposta);
+
+    Serial.println("Erro especifico: " + lastLine);
+
+    display_mensagem_meio(lastLine);
   }
 
   // Fechar a conexão
   client.stop();
-  return false;
-}
-
-//Envia uma instrução para o ESPCAM tirar a foto
-void tirarFoto()
-{
-  //GET - WebServer do ESPCAM
-  Serial.println("URL = " + url_tirarFoto);
-  
-  HTTPClient http;
-  http.begin(url_tirarFoto);
-  //delay(3000);
-  int httpCode = http.GET();
-
-  if (httpCode == HTTP_CODE_OK) {
-    Serial.println("Requisição enviada com sucesso. Foto tirada!");
-  } else {
-    Serial.printf("Erro ao enviar a requisição: %d\n", httpCode);
-  }
-
-  http.end();
 }
 
 int contagem_pessoas()
@@ -438,6 +524,8 @@ int contagem_pessoas()
 //Envia uma requisição post com a quantidade de pessoas que entraram
 void quantasPessoasEntraram()
 {
+  Serial.println("Estou no quantasPessoas");
+
   // Crie um objeto HTTPClient
   HTTPClient client;
   client.begin(url_registroPessoas);
@@ -475,7 +563,6 @@ void abrir_fechadura()
 
   //SENSOR MAGNÉTICO: 0 - FECHADO(SENSOR SE ENCONSTANDO) | 1 - ABERTO
   
-  int tempo_atual = millis();
   pessoas_contagem = 0;
   
   //tone(BUZZER_PIN, NOTA_BUZZER, 500); 
@@ -488,29 +575,6 @@ void abrir_fechadura()
   bool estado = false;
   bool estado_porta = digitalRead(MAG_PIN);
 
-  /*
-  while(tempo_atual + 5000 > millis())
-  {
-
-    digitalWrite(RELE_PIN, HIGH); 
-    
-    saida = contagem_pessoas();
-
-    if(saida == true && estado == false)
-    {
-      estado = true;
-      pessoas++;
-    }
-    else if(saida == false && estado==true)
-    {
-      estado = false;
-    }
-
-    bool mag = digitalRead(MAG_PIN);
-
-    Serial.println(mag);
-
-  }*/
 
   //ENQUANTO A PORTA NAO É ABERTA  
   while(estado_porta == false)
@@ -541,10 +605,13 @@ void abrir_fechadura()
   digitalWrite(RELE_PIN, LOW);
 
   //Envio da quantidade de pessooas ao dashboard web
-  Serial.println(pessoas_contagem + "pessoas entraram no ambiente!");
+  //Serial.print(pessoas_contagem);
+  //Serial.println(" pessoas entraram no ambiente!");
   
   //Envia um post ao servidor indicando quantas pessoas entraram
-  quantasPessoasEntraram();
+  //quantasPessoasEntraram();
+
+  Serial.println("Enviado quantidade de pessoas!");
   
 
 }
@@ -564,6 +631,7 @@ void setup() {
 void loop() 
 {
   display_home();
+  Serial.println(digitalRead(FECHADURA_PIN));
 
   char key = keypad.getKey();
 
@@ -581,10 +649,7 @@ void loop()
     //Cadastro Finalizado
     Serial.println("\nCadastro finalizado com sucesso!");
   
-    display.clearDisplay();
-    display.setCursor(0, (display.height() - 8) / 2);
-    display.println("Credenciais digitadas!");
-    display.display();
+    display_mensagem_meio("Credenciais digitadas!");
     delay(1000);
 
     //Manda para a base de dados
@@ -614,6 +679,9 @@ void loop()
     display.setCursor(0,0);
     display.println("--- R. facial ---");
     display.display();
+
+    //Manda o espcam tirar a foto
+    tirarFoto();
 
     //Mando o servidor analisar a foto
     if(checarFaceDB())
@@ -668,6 +736,7 @@ void loop()
     display.setCursor(0, 0);
     display.println("Tirando foto...");
     display.display();
+    abrir_fechadura();
     delay(1000);
   }
 
@@ -692,7 +761,8 @@ void loop()
       display.clearDisplay();
       display.println("Saida Liberada!");
       display.display();
-      delay(500);
+      abrir_fechadura();
+      delay(1000);
 
       //Enviar rota para o servidor tirar o usuario da lista de presentes
 

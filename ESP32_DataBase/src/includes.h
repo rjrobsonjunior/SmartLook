@@ -3,6 +3,8 @@
 #include <WiFi.h>
 #include <HTTPClient.h>
 #include <ArduinoJson.h>
+#include <ESPAsyncWebServer.h>
+#include <AsyncTCP.h>
 
 #include <Wire.h>
 #include <Adafruit_GFX.h>

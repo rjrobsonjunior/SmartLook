@@ -4,6 +4,8 @@ const fs = require('fs');
 const bodyParser = require('body-parser');
 const faceapi = require('face-api.js');
 const { db } = require('../db.js');
+const aguardaResposta = require('../controllers/aguardaResposta.js');
+const axios = require('axios');
 
 //CANVAS
 const canvas = require("canvas");
@@ -34,27 +36,24 @@ Promise.all([
 ]).then(() => console.log('Models loaded!')); 
 
 // Controle de continuação da requisição (Aplicação web)
-let pode_continuar = false;
-
-router.get('/continuarProcessamento', async(req, res) =>{
+router.get('/continuarProcessamentoFace', async(req, res) =>{
 
   //Altera o valor da variavel que permite com que a requisição de processamento continuar
-  pode_continuar = true;
-  console.log("\nVariavel de controle alterada! Processo iniciado!");
+  aguardaResposta.setPodeContinuar(true);
+  //console.log("\nVariavel de controle alterada! Processo iniciado!");
   res.status(200).send('Variavel alterada com sucesso!');
 
   //Isso pode ser feito também atraves de comunicação webSocket entre o servidor e o site (que esta na rota GET /foto em upload)
 
 }); 
 
-
+/*
 router.post('/recognition', upload, async (req, res) => {
 
   console.time('Tempo de execução');
 
   try {
 
-    /* IMAGEM RECEBIDA VIA POST */
 
     // Verifique se a imagem foi enviada corretamente
     if (!req.file) {
@@ -100,7 +99,6 @@ router.post('/recognition', upload, async (req, res) => {
 
     const queryDescriptors = detections.descriptor; 
 
-    /* CARACTERISTICAS DAS IMAGENS NO BANCO DE DADOS */
 
     const query = "SELECT * FROM usuarios";
 
@@ -131,7 +129,6 @@ router.post('/recognition', upload, async (req, res) => {
       }
       
 
-      /* DEBUG */
       if (savedDescriptors.length === 0) {
         console.log('Não há descritores salvos para comparar');
         res.status(500).send("Não há descritores salvos para comparar");
@@ -219,53 +216,44 @@ router.post('/recognition', upload, async (req, res) => {
 
 
 });
+*/
+
+// Defina a função assíncrona separada
+function processamentoAssincrono(img) {
+  return new Promise(async (resolve, reject) => {
+    try {
+      const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
+      resolve(detections);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
 
 //Essa função pega a imagem do diretório /public/assents/foto
-router.get('/recognition1', async (req, res) => {
+router.get('/recognition', async (req, res) => {
+
+  console.log("\n --- ACESSO POR RECONHECIMENTO FACIAL ---\n");
+  console.log("ZDAda");
+  console.log("Acesse o site http://localhost:8800/foto e verifique se a foto esta adequada para o reconhecimento\n");
 
   //Sempre que começa o processo ele reinicia a variavel de controle
-  pode_continuar = false;
-
-  const tempoMaximoEspera = 600000; // (10 minutos)
-  const intervaloVerificacao = 500; // (0,5 segundo)
-  let tempoDecorrido = 0;
-
-  // Função para aguardar a mudança da variável global
-  const aguardarMudancaVariavel = () => new Promise((resolve, reject) => {
-
-    const intervalo = setInterval(() => {
-
-      if (pode_continuar) {
-        clearInterval(intervalo);
-        resolve();
-      }
-      else{
-        process.stdout.write(".");
-        tempoDecorrido += intervaloVerificacao;
-
-        if (tempoDecorrido >= tempoMaximoEspera) {
-          clearInterval(intervalo);
-          reject(new Error("\nTempo máximo de espera atingido!"));
-        }
-      }
-
-    }, intervaloVerificacao); // Intervalo de verificação (500 milissegundos)
-
-  });
+  aguardaResposta.setPodeContinuar(false);
 
   // Aguardar a mudança da variável global com tempo máximo de espera de 30 segundos
   try {
-    await aguardarMudancaVariavel();
+    await aguardaResposta.aguardarMudancaVariavel();
     
   } 
   catch (error) {
     console.error(error.message);
-    return res.status(404).send('Tempo maximo atigindo!');
+    return res.status(500).send('Tempo maximo atigindo!');
 
   }
-  console.log("Continuando reconhecimento...");
-
+  
   try {
+    console.log("\n-----------------------------------------------------------------------------------------");
+    console.log("Logs para controle: ");
 
     // Acesso à imagem através diretorio dela
     const imagePath = './routes/public/assets/fotos/img.jpg';
@@ -275,13 +263,15 @@ router.get('/recognition1', async (req, res) => {
       console.log("Imagem carregada pelo canvas!");
     }
 
-    // Extrai as características faciais da imagem
+    //const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
     const detections = await faceapi.detectSingleFace(img).withFaceLandmarks().withFaceDescriptor();
     
     if (!detections) {
       console.log("Nenhuma face detectada na imagem");
-      res.status(550).send('Nenhuma face detectada na imagem');
-      return;
+      console.log("-----------------------------------------------------------------------------------------\n");
+      console.log("\nRequisição finalizada!");
+      
+      return res.status(550).send('Nenhuma face detectada na imagem');
     }
 
     else
@@ -313,15 +303,19 @@ router.get('/recognition1', async (req, res) => {
 
         // Converte o JSON em um array de descritores faciais
         let descriptors = new Float32Array(values);
-
-        // Converte as características faciais em formato JSON em um objeto LabeledFaceDescriptors do face-api.js
-        let labeledDescriptors  = new faceapi.LabeledFaceDescriptors(results[i].nome, [descriptors]);
         
-        // Adiciona os descritores do usuário ao array de descritores
-        savedDescriptors.push(labeledDescriptors);
+        if(descriptors.length != 0 ){
+          // Converte as características faciais em formato JSON em um objeto LabeledFaceDescriptors do face-api.js
+          let labeledDescriptors  = new faceapi.LabeledFaceDescriptors(results[i].nome, [descriptors]);
+          // Adiciona os descritores do usuário ao array de descritores
+          savedDescriptors.push(labeledDescriptors);
+        }
+        else{
+          console.log("Usuario nao caracteristicas facias cadastradas, verificar! Usuario = ", results[i].nome);
+          
+        }
+          
       }
-      
-
       
       if (savedDescriptors.length === 0) {
         console.log('Não há descritores salvos para comparar');
@@ -351,13 +345,15 @@ router.get('/recognition1', async (req, res) => {
         res.status(500).send("As dimensões dos descritores não são iguais");
       } 
       
+      
       // Compara as características faciais da imagem com as características faciais do banco de dados
       const faceMatcher = new faceapi.FaceMatcher(savedDescriptors);
       const bestMatch = faceMatcher.findBestMatch(queryDescriptors);
       const result = bestMatch.toString();
       
-      
-      console.log("result:" + result);
+      console.log("-----------------------------------------------------------------------------------------\n");
+      console.log("result: ", result);
+      console.log()
 
       if(result.includes('unknown'))
       {
@@ -369,23 +365,25 @@ router.get('/recognition1', async (req, res) => {
         //Sepera a string da resposta (NOME (0.5))
         const nome = result.substring(0, result.indexOf(' (')).trim();
         
-        
         //Realiza uma nova consulta para procurar os dados do usuario e insere eles na tabela presents
         const query1 = `SELECT id, nome, login FROM usuarios WHERE nome = '${nome}'`;
-        console.log(query1);
+        
         db.query(query1, (err, result1) => {
           if (err) {
             console.error('Erro ao inserir os dados:', err);
           }
           else {
             const usuario = result1[0];
-            console.log(usuario);
             const sql = 'INSERT INTO presents (id, nome, login) VALUES (?, ?, ?)';
             const values = [usuario.id, usuario.nome, usuario.login];
           
             db.query(sql, values, (err) => {
               if (err) {
-                console.error('Erro ao inserir os dados:', err);
+                if (err.code === 'ER_DUP_ENTRY') {
+                  console.error('Erro ao inserir os dados na lista de presents! O usuário já foi inserido anteriormente.');
+                } else {
+                  console.error('Erro ao inserir os dados na lista de presents!', err);
+                }
               }
               else{
                 console.log('Dados inseridos com sucesso');
@@ -403,7 +401,8 @@ router.get('/recognition1', async (req, res) => {
     console.error('Erro ao processar a imagem:', error);
     res.status(500).send('Erro ao processar a imagem');
   }
-
+  
+ 
 });
 
 

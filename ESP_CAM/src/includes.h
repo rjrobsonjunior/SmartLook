@@ -7,7 +7,9 @@
 #include <AsyncWebSocket.h>
 #include <esp_task_wdt.h>
 
+
 /*--- Rede ---*/
+
 
 const char* ssid = "REDE_FECHADURA";
 const char* password = "thiagolindo";
@@ -55,10 +57,11 @@ const int portServer = 8800;
 
 //Caminho da foto
 const char* FILE_PHOTO = "/imagem.jpg";
+//camera_fb_t* foto_a = NULL;
 
 //Variavel de controle
 boolean takeNewPhoto = false;
-
+bool controleHTTP = false;
 
 //Referente ao liveview
 #define PART_BOUNDARY "123456789000000000000987654321"

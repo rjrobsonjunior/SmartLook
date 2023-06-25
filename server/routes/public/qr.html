@@ -213,9 +213,9 @@
 
         if (imageFile) {
             const formData = new FormData();
-            formData.append('qrcode', imageFile);
+            formData.append('qr', imageFile);
 
-            fetch('/qrcode', {
+            fetch('/qr', {
                 method: 'POST',
                 body: formData
             })
