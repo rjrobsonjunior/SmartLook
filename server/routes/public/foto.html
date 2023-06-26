@@ -39,9 +39,17 @@
 
     <div class="popup-container" id="popupContainerFoto">
         <div class="popup">
-            <h3 id="popupText">Deseja enviar a foto?</h3>
+            <h3 id="popupText">Deseja enviar a foto selecionada?</h3>
+            <img id="fotoPreview" alt="Preview da Foto" class="preview-image">
+
+            <button onclick="enviarImagemParaServidor()">Enviar Imagem</button>
+
+            <input type="file" id="uploadInput" style="display: none;">
+            <button onclick="selecionarImagem()">Selecione novamente</button>
+
             <button onclick="fecharPopupFoto()">Fechar</button>
-            <button onclick="enviarImagemParaServidor()">Enviar</button>
+            
+
         </div>
     </div>
 

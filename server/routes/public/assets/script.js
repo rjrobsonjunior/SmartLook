@@ -31,9 +31,18 @@ function tirarFoto() {
 
                 exibirContador();
                 
+                /*
                 setTimeout(function() {
                     exibirPopup("Foto capturada com sucesso!");
                 }, 5000);
+                */
+
+                exibirPopup("Foto capturada com sucesso!");
+
+               // Recarregar a página após 1 segundo (1000 milissegundos)
+                setTimeout(function() {
+                    location.reload();
+                }, 2000);
 
             } 
             else {
@@ -100,12 +109,33 @@ function exibirPopup(texto) {
     popupText.textContent = texto;
     popupContainer.classList.add("show");
 }
-
+/*
 function exibirPopupFoto(texto) {
     var popupContainer = document.getElementById("popupContainerFoto");
     var popupText = document.getElementById("popupText");
     popupText.textContent = texto;
     popupContainer.classList.add("show");
+}*/
+
+function exibirPopupFoto(texto) {
+    var popupContainer = document.getElementById("popupContainerFoto");
+    var popupText = document.getElementById("popupText");
+    var fotoPreview = document.getElementById("fotoPreview");
+
+    popupText.textContent = texto;
+    popupContainer.classList.add("show");
+
+    if (foto) {
+        var reader = new FileReader();
+
+        reader.onload = function(e) {
+            fotoPreview.src = e.target.result;
+        };
+
+        reader.readAsDataURL(foto);
+    } else {
+        fotoPreview.src = "";
+    }
 }
 
 function fecharPopupFoto() {
@@ -129,12 +159,13 @@ var foto;
 
 document.getElementById("uploadInput").addEventListener("change", function() {
     foto = this.files[0];
-    //enviarImagemParaServidor(file);
     exibirPopupFoto("Deseja enviar a foto?");
 });
 
 
 function enviarImagemParaServidor() {
+
+    fecharPopupFoto();
     
     if(foto){
         var formData = new FormData();
@@ -145,6 +176,12 @@ function enviarImagemParaServidor() {
         request.onreadystatechange = function() {
             if (request.readyState === 4 && request.status === 200) {
                 exibirPopup("Enviado com sucesso!");
+                
+                // Recarregar a página após 1 segundo (1000 milissegundos)
+                setTimeout(function() {
+                    location.reload();
+                }, 1000);
+
             }
         };
         request.send(formData);

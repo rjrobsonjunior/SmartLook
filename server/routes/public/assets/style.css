@@ -135,6 +135,16 @@ header h1 {
     background-color: #ac94be;
 }
 
+.preview-image {
+    max-width: 75%;
+    height: auto;
+    margin: 20px auto 30px;
+    display: block;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+
 .counter-container {
     position: fixed;
     top: 0;
