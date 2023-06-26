@@ -364,6 +364,7 @@ router.get('/recognition', async (req, res) => {
 
         //Sepera a string da resposta (NOME (0.5))
         const nome = result.substring(0, result.indexOf(' (')).trim();
+        console.log("Inserindo nos usuarios presentes");
         
         //Realiza uma nova consulta para procurar os dados do usuario e insere eles na tabela presents
         const query1 = `SELECT id, nome, login FROM usuarios WHERE nome = '${nome}'`;

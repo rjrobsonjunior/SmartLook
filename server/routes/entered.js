@@ -10,7 +10,7 @@ router.post('/pessoas', (req, res) => {
     const { pessoas } = req.body;
 
     numberP += parseInt(pessoas);
-    console.log(numberP);
+    console.log("Numero de pessoas que entraram = ", numberP);
     res.json({ success: true });
 });
 
@@ -18,7 +18,7 @@ router.post('/pessoas-sairam', (req, res) => {
   const { pessoas } = req.body;
 
   numberP -= parseInt(pessoas);
-  console.log(numberP);
+  console.log("Numero de pessoas que sairam = ", pessoas);
   res.json({ success: true });
 });
 

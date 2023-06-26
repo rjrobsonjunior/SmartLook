@@ -26,6 +26,8 @@ String login = "";
 String senha = "";
 String nome_usuario = "";
 int pessoas_contagem = 0;
+bool aberta = true;
+
 
 #define DIGITOS_LOGIN 3
 #define DIGITOS_SENHA 5
@@ -79,6 +81,7 @@ const char* ip_Servidor = "192.168.0.6";
 String url_analiseLogin = "http://192.168.0.6:8800/login";
 String url_analiseCredenciaisSaida = "http://192.168.0.6:8800/exit";
 String url_registroPessoas = "http://192.168.0.6:8800/pessoas";
+String url_registroPessoasSaida = "http://192.168.0.6:8800/pessoas-sairam";
 
 String rotaFoto = "/capture";
 String rotaFace = "/analisaFoto";

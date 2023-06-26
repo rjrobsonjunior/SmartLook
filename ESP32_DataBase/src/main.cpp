@@ -70,6 +70,7 @@ void display_head(String msg, int tempo = 100)
 
 void display_erro(String msg, int tempo = 500)
 {
+  display.clearDisplay();
   display_head("Erro", 10);
 
   //Imprime mensagem de erro
@@ -567,7 +568,7 @@ void tirarFoto()
 int contagem_pessoas()
 {
   int leitura = digitalRead(RECPTOR_PIN);
-
+  
   //LEITURA = 1 -> LASER NO RECEPTOR | LEITURA == 0 -> LASER NAO TA CHEGANDO NO RECEPTOR (PASSANDO GENTE)
 
   if(leitura == 1)
@@ -617,12 +618,48 @@ void RequisicaoQuantidadePessoas()
   client.end();
 }
 
-void abrir_fechadura()
+//Envia uma requisição post com a quantidade de pessoas que entraram
+void requisicaoQuantidadePessoasSaida()
+{
+
+  // Crie um objeto HTTPClient
+  HTTPClient client;
+  client.begin(url_registroPessoasSaida);
+  client.addHeader("Content-Type", "application/json");
+
+  // Crie um objeto JSON com os dados de login e senha
+  StaticJsonDocument<200> jsonDoc;
+  jsonDoc["pessoas"] = pessoas_contagem;
+
+  // Converta o objeto JSON para uma string
+  String jsonData;
+  serializeJson(jsonDoc, jsonData);
+
+  int httpResponseCode = client.POST(jsonData);
+  String response = client.getString();
+
+  if (httpResponseCode == 200) 
+  {
+    Serial.println("requisicaoQuantidadePessoasSaida | Enviado com sucesso!");
+    nome_usuario = response;
+
+  } 
+
+  else 
+  {
+    Serial.println("requisicaoQuantidadePessoasSaida | Erro na conexão com o servidor!");
+    Serial.print("HttpCode = ");
+    Serial.println(httpResponseCode);
+  }
+
+  client.end();
+}
+
+void abrir_fechadura(bool entrada = true)
 {
 
   //SENSOR MAGNÉTICO: 0 - FECHADO(SENSOR SE ENCONSTANDO) | 1 - ABERTO
   
-  int tempo_atual = millis();
   pessoas_contagem = 0;
   
   //tone(BUZZER_PIN, NOTA_BUZZER, 500); 
@@ -635,6 +672,7 @@ void abrir_fechadura()
   bool estado = false;
   bool estado_porta = digitalRead(MAG_PIN);
 
+
   //ENQUANTO A PORTA NAO É ABERTA  
   while(estado_porta == false)
   {
@@ -642,10 +680,12 @@ void abrir_fechadura()
     delay(10);
   }
 
+
   //MODO A PARTIR DO SENSOR MAGNETICO
   while(estado_porta == true)
   {   
     saida = contagem_pessoas();
+    Serial.println(saida);
 
     if(saida == true && estado == false)
     {
@@ -660,6 +700,7 @@ void abrir_fechadura()
     estado_porta = digitalRead(MAG_PIN);
   }
 
+
   //Quando a porta fecha -> Rele desativado
   delay(500);
   digitalWrite(RELE_PIN, LOW);
@@ -668,12 +709,18 @@ void abrir_fechadura()
   Serial.print(pessoas_contagem);
   Serial.println(" pessoas entraram no ambiente!");
   
-  //Envia um post ao servidor indicando quantas pessoas entraram
-  RequisicaoQuantidadePessoas();
+  if(entrada){
+    //Envia um post ao servidor indicando quantas pessoas entraram
+    RequisicaoQuantidadePessoas();
+  }
+  else
+  {
+    Serial.println("requisicaoQuantidadePessoasSaida");
+    requisicaoQuantidadePessoasSaida();
+  }
 
   Serial.println("Enviado quantidade de pessoas!");
   
-
 }
 
 void setup() {
@@ -789,18 +836,18 @@ void loop()
 
     display_head("--- Saida ---", 500);
 
+    abrir_fechadura(false);
+
+
     credenciaisLogin();
     
     //Manda para a base de dados
     if(checarCredenciaisSaida())
     {
       Serial.println("Saida Liberada! Obrigado pela visita!");
-      display_mensagem_meio("Saida liberada!", 100, false);
-      abrir_fechadura();
+      display_mensagem_meio("Saida liberada!", 100, true);
 
       delay(100);
-
-      //Enviar rota para o servidor tirar o usuario da lista de presentes
 
     }
 
@@ -811,7 +858,7 @@ void loop()
       delay(100);
     }
 
-    display_mensagem_meio("Obrigado pela visita", 1000, false);
+    display_mensagem_meio("Obrigado pela visita", 1000, true);
     delay(1000);
 
   }
@@ -819,63 +866,27 @@ void loop()
   if(key == '*')
   {
     Serial.println("--- Abrindo fechadura (TESTE) ---");
+    
+    if(aberta == true){
+      digitalWrite(RELE_PIN, HIGH);
+      aberta = false;
+      display_mensagem_meio("Abrindo...");
+      
 
-    display_mensagem_meio("Abrindo...");
-    abrir_fechadura();
+    }
+    else if(aberta == false)
+    {
+      digitalWrite(RELE_PIN, LOW);
+      aberta = true;
+      display_mensagem_meio("Fechando...");
+
+    }
+
+    Serial.println(aberta);
+
     delay(1000);
   }
+}
 
  
   
-  /*
-  if(digitalRead(FECHADURA_PIN) == LOW)
-  {
-    //Pessoa apertou o botao para sair
-    Serial.println("--- Saida ---");
-
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("--- Saida ---");
-    display.display();
-    delay(500);
-
-    credenciaisLogin();
-
-    display.setCursor(0, (display.height() - 8) / 2);
-
-    //Manda para a base de dados
-    if(checarCredenciaisSaida())
-    {
-      Serial.println("Saida Liberada! Obrigado pela visita!");
-      display.clearDisplay();
-      display.println("Saida Liberada!");
-      display.display();
-      delay(500);
-
-      //Enviar rota para o servidor tirar o usuario da lista de presentes
-
-    }
-
-    else
-    {
-      Serial.println("Usuario não reconhecido!");
-      display.clearDisplay();
-      display.println("Usuario não reconhecido!");
-      display.display();
-      delay(500);
-    }
-
-    display.clearDisplay();
-    display.println("Obrigado pela visita!");
-    display.display();
-    delay(1000);
-  }
-  */
-  
-}
-
-
-
-
-
-
