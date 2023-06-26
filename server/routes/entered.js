@@ -14,6 +14,14 @@ router.post('/pessoas', (req, res) => {
     res.json({ success: true });
 });
 
+router.post('/pessoas-sairam', (req, res) => {
+  const { pessoas } = req.body;
+
+  numberP -= parseInt(pessoas);
+  console.log(numberP);
+  res.json({ success: true });
+});
+
 router.get('/setNumber', (req, res) => {
   res.json({number: numberP });
 });
