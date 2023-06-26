@@ -46,7 +46,6 @@ Essa abordagem oferece aos usuários um controle mais preciso e eficiente sobre 
 
 ![image](https://github.com/rjrobsonjunior/OficinadeIntegracao1/assets/70554459/9617329b-339d-4e46-9e80-171281fc735c)
 
-(Video do processo)
 
 
 ### Pagina 2 - Qr Code
@@ -55,11 +54,14 @@ A segunda página web foi projetada para permitir que o usuário faça o upload 
 
 ![image](https://github.com/rjrobsonjunior/OficinadeIntegracao1/assets/70554459/fe704dfd-0cff-4b32-bd8b-d284a2249937)
 
-(Video do processo)
 
 ## Protótipo Final
 
 ![Porta](https://github.com/rjrobsonjunior/OficinadeIntegracao1/assets/70554459/e0d314cd-0e24-4825-8aec-82427308be97)
+
+## Video demonstrativo
+
+https://www.youtube.com/watch?v=dbPdomMdL2M
 
 
 
