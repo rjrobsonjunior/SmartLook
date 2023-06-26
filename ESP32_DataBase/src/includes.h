@@ -10,6 +10,8 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
+/* ---------------- Configurações Gerais ---------------- */
+
 //Definição dos pinos
 #define RELE_PIN 2
 #define BUZZER_PIN 5
@@ -17,6 +19,17 @@
 #define RECPTOR_PIN 15
 #define MAG_PIN 23
 #define FECHADURA_PIN 35
+
+
+//Definição de variaveis globais 
+String login = "";
+String senha = "";
+String nome_usuario = "";
+int pessoas_contagem = 0;
+
+#define DIGITOS_LOGIN 3
+#define DIGITOS_SENHA 5
+
 
 /* ---------------- Display ---------------- */
 
@@ -70,9 +83,3 @@ String url_registroPessoas = "http://192.168.0.6:8800/pessoas";
 String rotaFoto = "/capture";
 String rotaFace = "/analisaFoto";
 
-// Variáveis globais
-String login = "";
-String senha = "";
-String nome_usuario = "";
-
-int pessoas_contagem = 0;

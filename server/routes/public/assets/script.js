@@ -17,10 +17,8 @@ function obterDataModificacaoFoto() {
     xhr.send();
 }
   
-  
 // Chamar a função para obter a data de modificação da foto ao carregar a página
 window.addEventListener('DOMContentLoaded', obterDataModificacaoFoto);
-  
 
 function tirarFoto() {
 
@@ -95,6 +93,7 @@ function exibirContador() {
 
 }
 
+
 function exibirPopup(texto) {
     var popupContainer = document.getElementById("popupContainer");
     var popupText = document.getElementById("popupText");
@@ -102,8 +101,57 @@ function exibirPopup(texto) {
     popupContainer.classList.add("show");
 }
 
+function exibirPopupFoto(texto) {
+    var popupContainer = document.getElementById("popupContainerFoto");
+    var popupText = document.getElementById("popupText");
+    popupText.textContent = texto;
+    popupContainer.classList.add("show");
+}
+
+function fecharPopupFoto() {
+    var popupContainer = document.getElementById("popupContainerFoto");
+    popupContainer.classList.remove("show");
+
+}
+
 function fecharPopup() {
     var popupContainer = document.getElementById("popupContainer");
     popupContainer.classList.remove("show");
+
 }
 
+function selecionarImagem() {
+    var uploadInput = document.getElementById("uploadInput");
+    uploadInput.click();
+}
+
+var foto;
+
+document.getElementById("uploadInput").addEventListener("change", function() {
+    foto = this.files[0];
+    //enviarImagemParaServidor(file);
+    exibirPopupFoto("Deseja enviar a foto?");
+});
+
+
+function enviarImagemParaServidor() {
+    
+    if(foto){
+        var formData = new FormData();
+        formData.append("imagem", foto);
+
+        var request = new XMLHttpRequest();
+        request.open("POST", "/foto", true);
+        request.onreadystatechange = function() {
+            if (request.readyState === 4 && request.status === 200) {
+                exibirPopup("Enviado com sucesso!");
+            }
+        };
+        request.send(formData);
+    }
+    else
+    {
+        exibirPopup("Nao há foto para enviar!");
+    }
+
+}

@@ -9,41 +9,6 @@ void startPin()
   pinMode(FECHADURA_PIN, INPUT_PULLUP);
 }
 
-void connect_wifi()
-{
-  
-  WiFi.begin(ssid, password_wifi);
-
-  while (WiFi.status() != WL_CONNECTED) 
-  {
-    delay(1000);
-    Serial.print(".");
-
-  }
-
-  Serial.println("");
-
-  // Imprime os dados de conexão
-  Serial.println(WiFi.SSID());
-  Serial.print("Endereço IP: http://");
-  Serial.println(WiFi.localIP());
-  Serial.print("Endereço MAC: ");
-  Serial.println(WiFi.macAddress());
-  Serial.println("Conectado à rede WiFi");
-}
-
-void ip_esp()
-{
-  // Configurar o IP estático
-  if (!WiFi.config(local_IP, gateway, subnet)) {
-    Serial.println("Falha ao configurar o IP estático!");
-  }
-  else {
-    Serial.println("Configuração de IP estático concluída!");
-  }
-
-}
-
 /* DISPLAY */
 void setCursorMeio()
 {
@@ -82,12 +47,37 @@ void start_display()
 
 }
 
-void display_mensagem_meio(String msg)
+void display_mensagem_meio(String msg, int tempo = 100, bool clear = true)
 {
-  display.clearDisplay();
+  if(clear){
+    display.clearDisplay();
+  }
   setCursorMeio();
   display.println(msg);
   display.display();
+  delay(tempo);
+
+}
+
+void display_head(String msg, int tempo = 100)
+{
+  display.clearDisplay();
+  display.setCursor(0, 0);
+  display.println(msg);
+  display.display();
+  delay(tempo);
+}
+
+void display_erro(String msg, int tempo = 500)
+{
+  display_head("Erro", 10);
+
+  //Imprime mensagem de erro
+  setCursorMeio();
+  display.println(msg);
+  display.display();
+
+  delay(tempo);
 }
 
 void display_acesso_liberado(String usuario)
@@ -102,9 +92,7 @@ void display_acesso_liberado(String usuario)
     display.clearDisplay();
     display.println("Bem-vindo " + usuario); // Texto a ser exibido
     display.display(); 
-    
-    
-    delay(3000);
+    delay(250);
 
 }
 
@@ -128,7 +116,7 @@ void display_acesso_negado()
     display.println("Acesso negado!"); // Texto a ser exibido
     display.display();  
     
-    delay(3000);
+    delay(1500);
 }
 
 void display_home()
@@ -149,6 +137,43 @@ void display_home()
     //display.display();
 }
 
+/* CONFIGURAÇÃO DE REDE */
+
+void connect_wifi()
+{
+  
+  WiFi.begin(ssid, password_wifi);
+
+  while (WiFi.status() != WL_CONNECTED) 
+  {
+    delay(1000);
+    Serial.print(".");
+
+  }
+
+  Serial.println("");
+
+  // Imprime os dados de conexão
+  Serial.println(WiFi.SSID());
+  Serial.print("Endereço IP: http://");
+  Serial.println(WiFi.localIP());
+  Serial.print("Endereço MAC: ");
+  Serial.println(WiFi.macAddress());
+  Serial.println("Conectado à rede WiFi");
+}
+
+void ip_esp()
+{
+  // Configurar o IP estático
+  if (!WiFi.config(local_IP, gateway, subnet)) {
+    Serial.println("Falha ao configurar o IP estático!");
+  }
+  else {
+    Serial.println("Configuração de IP estático concluída!");
+  }
+
+}
+
 void credenciaisLogin()
 {
 
@@ -158,7 +183,7 @@ void credenciaisLogin()
   char key;
 
   Serial.print("Login = ");
-  while(login_f.length() < 3) {
+  while(login_f.length() < DIGITOS_LOGIN) {
 
     key = keypad.getKey();
     
@@ -175,13 +200,13 @@ void credenciaisLogin()
       display.print(login_f);
       display.display();
 
-      delay(100); // aguarda um pouco para a próxima tecla ser pressionada
+      delay(100); //Aguarda um pouco para a próxima tecla ser pressionada
     }
   }
 
   Serial.print("\nSenha = ");
 
-  while(senha_f.length() < 5) {
+  while(senha_f.length() < DIGITOS_SENHA) {
 
     key = keypad.getKey();
     
@@ -206,6 +231,17 @@ void credenciaisLogin()
   delay(500);
 
 }
+
+/* FUNÇÕES AUXILIARES */
+
+String REQ_extrairUltimaLinha(String resposta)
+{
+  int lastNewlinePos = resposta.lastIndexOf('\n');
+  String lastLine = resposta.substring(lastNewlinePos + 1);
+  
+  return lastLine;
+}
+
 
 //Faz a checagem se o login existe no Banco de Dados
 bool checarLoginDB()
@@ -241,8 +277,11 @@ bool checarLoginDB()
 
   else 
   {
-    Serial.println("checarLoginDB | HttpCode = " + httpResponseCode);
+    Serial.print("checarLoginDB | HttpCode = ");
+    Serial.println(httpResponseCode);
     Serial.println("checarLoginDB | Erro: " + response);
+
+    display_erro(response);
   }
 
   client.end();
@@ -282,12 +321,12 @@ bool checarCredenciaisSaida()
 
   else 
   {
-    Serial.println("checarCredenciaisSaida | Erro na conexão com o servidor!");
+    Serial.println("checarCredenciaisSaida | Erro: " + response);
     Serial.println("HttpCode = ");
     Serial.println(httpResponseCode);
-  }
 
-  Serial.println("Resposta = " + response);
+    display_erro(response);
+  }
 
   return false;
   client.end();
@@ -312,10 +351,11 @@ bool checarFaceDB()
   client.print("\r\n");
   client.print("Connection: close\r\n\r\n");
 
+  //Impressão display
   display.clearDisplay();
-  display.setCursor(0, 8); // Define a posição do cursor no meio do display
+  display.setCursor(0, 8);
   display.println("Confira a foto: ");
-  display.setCursor(0, 24); // Define a posição do cursor no meio do display
+  display.setCursor(0, 24);
   display.println("localhost:8800/foto");
   display.display();
 
@@ -331,17 +371,23 @@ bool checarFaceDB()
     resposta = client.readString();
   }
 
-  // Extrair a última linha da resposta 
+  /*
   int lastNewlinePos = resposta.lastIndexOf('\n');
   String lastLine = resposta.substring(lastNewlinePos + 1);
+  */
 
+  String lastLine = REQ_extrairUltimaLinha(resposta);
+  
   // Analisar a resposta do servidor
   if (resposta.startsWith("HTTP/1.1 200 OK")) 
   {
     client.stop();
+
     // Face reconhecida
     Serial.println("Face reconhecida!");
+    display_mensagem_meio("Face reconhecida!", 500);
     nome_usuario = lastLine;
+
     return true;
   } 
    
@@ -349,13 +395,11 @@ bool checarFaceDB()
   {
     // Outro problema
     Serial.println("Face nao foi reconhecida");
+    Serial.println("Resposta completa do servidor: " + resposta); 
+    Serial.println("\n\nErro especifico: " + lastLine);
 
-    Serial.println("Resposta completa do servidor:");
-    Serial.println(resposta);
-
-    Serial.println("Erro especifico: " + lastLine);
-
-    display_mensagem_meio(lastLine);
+    //Impressao display
+    display_erro(lastLine);
   }
 
   // Fechar a conexão
@@ -381,10 +425,11 @@ bool checarQrCodeDB()
   client.print("\r\n");
   client.print("Connection: close\r\n\r\n");
 
+  //Impressao display
   display.clearDisplay();
-  display.setCursor(0, 8); // Define a posição do cursor no meio do display
+  display.setCursor(0, 8); 
   display.println("Upload do QR Code: ");
-  display.setCursor(0, 24); // Define a posição do cursor no meio do display
+  display.setCursor(0, 24);
   display.println("localhost:8800/qrcode");
   display.display();
 
@@ -401,9 +446,13 @@ bool checarQrCodeDB()
     resposta = client.readString();
   }
 
+  /*
   // Extrair a última linha da resposta 
   int lastNewlinePos = resposta.lastIndexOf('\n');
   String lastLine = resposta.substring(lastNewlinePos + 1);
+  */
+
+  String lastLine = REQ_extrairUltimaLinha(resposta);
 
   // Analisar a resposta do servidor
   if (resposta.startsWith("HTTP/1.1 200 OK")) 
@@ -411,6 +460,10 @@ bool checarQrCodeDB()
     client.stop();
     Serial.println("Qr Code reconhecido!");
     nome_usuario = lastLine;
+
+    //Impressao display
+    display_mensagem_meio("QR reconhecido!", 500);
+  
     return true;
   } 
    
@@ -419,7 +472,11 @@ bool checarQrCodeDB()
     // Outro problema
     Serial.println("Resposta completa do servidor:");
     Serial.println(client.readString());
-  }
+
+    //Impressao display
+    display_erro(lastLine);
+
+  } 
 
   // Fechar a conexão
   client.stop();
@@ -484,8 +541,10 @@ void tirarFoto()
   if (resposta.startsWith("HTTP/1.1 200 OK")) 
   {
     client.stop();
+
     // Face reconhecida
     Serial.println("Foto capturada!");
+    display_mensagem_meio("Foto capturada!", 200, false);
   } 
    
   else 
@@ -498,12 +557,12 @@ void tirarFoto()
 
     Serial.println("Erro especifico: " + lastLine);
 
-    display_mensagem_meio(lastLine);
+    display_erro(lastLine);
   }
 
   // Fechar a conexão
   client.stop();
-}
+} 
 
 int contagem_pessoas()
 {
@@ -520,9 +579,8 @@ int contagem_pessoas()
   }
 }
 
-
 //Envia uma requisição post com a quantidade de pessoas que entraram
-void quantasPessoasEntraram()
+void RequisicaoQuantidadePessoas()
 {
   Serial.println("Estou no quantasPessoas");
 
@@ -544,15 +602,16 @@ void quantasPessoasEntraram()
 
   if (httpResponseCode == 200) 
   {
-    Serial.println("quantasPessoasEntraram | Enviado com sucesso!");
+    Serial.println("RequisicaoQuantidadePessoas | Enviado com sucesso!");
     nome_usuario = response;
 
   } 
 
   else 
   {
-    Serial.println("quantasPessoasEntraram | Erro na conexão com o servidor!");
-    Serial.println("HttpCode = " + httpResponseCode);
+    Serial.println("RequisicaoQuantidadePessoas | Erro na conexão com o servidor!");
+    Serial.print("HttpCode = ");
+    Serial.println(httpResponseCode);
   }
 
   client.end();
@@ -563,6 +622,7 @@ void abrir_fechadura()
 
   //SENSOR MAGNÉTICO: 0 - FECHADO(SENSOR SE ENCONSTANDO) | 1 - ABERTO
   
+  int tempo_atual = millis();
   pessoas_contagem = 0;
   
   //tone(BUZZER_PIN, NOTA_BUZZER, 500); 
@@ -575,11 +635,11 @@ void abrir_fechadura()
   bool estado = false;
   bool estado_porta = digitalRead(MAG_PIN);
 
-
   //ENQUANTO A PORTA NAO É ABERTA  
   while(estado_porta == false)
   {
     estado_porta = digitalRead(MAG_PIN);
+    delay(10);
   }
 
   //MODO A PARTIR DO SENSOR MAGNETICO
@@ -605,11 +665,11 @@ void abrir_fechadura()
   digitalWrite(RELE_PIN, LOW);
 
   //Envio da quantidade de pessooas ao dashboard web
-  //Serial.print(pessoas_contagem);
-  //Serial.println(" pessoas entraram no ambiente!");
+  Serial.print(pessoas_contagem);
+  Serial.println(" pessoas entraram no ambiente!");
   
   //Envia um post ao servidor indicando quantas pessoas entraram
-  //quantasPessoasEntraram();
+  RequisicaoQuantidadePessoas();
 
   Serial.println("Enviado quantidade de pessoas!");
   
@@ -631,17 +691,13 @@ void setup() {
 void loop() 
 {
   display_home();
-  Serial.println(digitalRead(FECHADURA_PIN));
 
   char key = keypad.getKey();
 
   if (key == 'A') {
     Serial.println("--- Login e Senha ---");
 
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("--- Login e Senha ---");
-    display.display();
+    display_head("--- Login e Senha ---");
 
     //Registrando o login e senha
     credenciaisLogin();
@@ -649,8 +705,7 @@ void loop()
     //Cadastro Finalizado
     Serial.println("\nCadastro finalizado com sucesso!");
   
-    display_mensagem_meio("Credenciais digitadas!");
-    delay(1000);
+    display_mensagem_meio("Credenciais digitadas!", 1000);
 
     //Manda para a base de dados
     bool respostaConsulta = checarLoginDB();
@@ -728,41 +783,22 @@ void loop()
 
   }
 
-  if(key == 'D')
-  {
-    Serial.println("--- Tirando foto ---");
-
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("Tirando foto...");
-    display.display();
-    abrir_fechadura();
-    delay(1000);
-  }
-
-  if (key == '*') {
+  if (key == 'D') {
     //Pessoa apertou o botao para sair
     Serial.println("--- Saida ---");
 
-    display.clearDisplay();
-    display.setCursor(0, 0);
-    display.println("--- Saida ---");
-    display.display();
-    delay(500);
+    display_head("--- Saida ---", 500);
 
     credenciaisLogin();
-
-    display.setCursor(0, (display.height() - 8) / 2);
-
+    
     //Manda para a base de dados
     if(checarCredenciaisSaida())
     {
       Serial.println("Saida Liberada! Obrigado pela visita!");
-      display.clearDisplay();
-      display.println("Saida Liberada!");
-      display.display();
+      display_mensagem_meio("Saida liberada!", 100, false);
       abrir_fechadura();
-      delay(1000);
+
+      delay(100);
 
       //Enviar rota para o servidor tirar o usuario da lista de presentes
 
@@ -771,18 +807,25 @@ void loop()
     else
     {
       Serial.println("Usuario não reconhecido!");
-      display.clearDisplay();
-      display.println("Usuario não reconhecido!");
-      display.display();
-      delay(500);
+      display_mensagem_meio("Login invalido!", 1000, false);
+      delay(100);
     }
 
-    display.clearDisplay();
-    display.println("Obrigado pela visita!");
-    display.display();
+    display_mensagem_meio("Obrigado pela visita", 1000, false);
     delay(1000);
 
   }
+
+  if(key == '*')
+  {
+    Serial.println("--- Abrindo fechadura (TESTE) ---");
+
+    display_mensagem_meio("Abrindo...");
+    abrir_fechadura();
+    delay(1000);
+  }
+
+ 
   
   /*
   if(digitalRead(FECHADURA_PIN) == LOW)
